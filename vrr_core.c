@@ -12,7 +12,6 @@
 
 struct vrr_node {
 	 
-	struct kobject *kobj;
 	int id; //128 bit identifier to match those of IP
 	int vset_size; 
 	int rtable_value; //the size of the virtual neighborhood
@@ -30,15 +29,19 @@ struct vrr_packet {
     u_int pk_type; //hello message, setup, setup_req etc
 };
 
-static ssize_t rtable_show(struct kobject *kobj, struct kobj_attribute *attr
-						char *buf)
+//static struct vrr_node *node;
+static struct kobject *vrr_obj;
+
+
+static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
+						   char *buf)
 {
-	vrr_node->rtable_value = 3;
-	return sprintf(buf, "%du", vrr_node->rtable_value);
+	int value = 3;
+	return sprintf(buf, "%d", value);
 }
 
-static struct kobj_attribute vrr_attr = 
-		_ATTR(vrr, 0666, rtable_show, NULL);
+static struct kobj_attribute vrr_attr =
+		__ATTR(id, 0666, id_show, NULL);
 
 static struct attribute *attrs[] = {
 		&vrr_attr.attr,
@@ -49,8 +52,9 @@ static struct attribute_group attr_group = {
 		.attrs = attrs,
 };
 
+
 //Initialize the module
-static int __init vrr_init(void) 
+static int __init vrr_init(void)
 {
 
 	/*1. Initialize an empty routing table
@@ -58,15 +62,19 @@ static int __init vrr_init(void)
 	3. Initialize sysfs hooks ??
 	4. Build hello packet and send to establish a proxy 
 	5. There is probably alot more than this*/
-	int err;
+	int err = 0;
+	//node->id = 3;
 	
-	vrr_node->kobj = kobject_create_and_add("vrr", kernel_kobj);
-	if(!vrr_node->kobj)
+	/*if(!(node = kzalloc(sizeof(struct vrr_node), GFP_KERNEL)));
+			return -ENOMEM;*/
+
+	vrr_obj = kobject_create_and_add("vrr", kernel_kobj);
+	if(!vrr_obj)
 		return -ENOMEM;
 	
-	err = sysfs_create_group(vrr_node->kobj, &attr_group);
+	err = sysfs_create_group(vrr_obj, &attr_group);
 	if(err)
-		kobject_put(vrr_node->kobj);
+		kobject_put(vrr_obj);
 	
 	return err;
 	
@@ -74,7 +82,7 @@ static int __init vrr_init(void)
 
 static void __exit vrr_exit(void)
 {
-	kobject_put(vrr_node->kobj);
+	kobject_put(vrr_obj);
 }
 
 MODULE_AUTHOR("Cameron Kidd <cameronk@cs.pdx.edu>");
