@@ -1,5 +1,6 @@
-TARGET := vrr_core
+TARGET := vrr
 obj-m := $(TARGET).o
+vrr-objs := vrr_core.o vrr_input.o af_vrr.o
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
