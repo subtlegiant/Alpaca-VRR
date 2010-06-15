@@ -23,8 +23,6 @@
 
 #include "vrr.h"
 
-#define ETH_P_VRR 0x8777
-
 static int vrr_create(struct net *net, struct socket *sock, int protocol,
 		      int kern);
 
@@ -42,8 +40,7 @@ static const struct proto vrr_prot = {
 	/* .sendmsg	= vrr_sendmsg, */
 	/* .recvmsg	= vrr_recvmsg, */
 	/* .bind		= vrr_bind, */
-	.obj_size	= sizeof(struct raw_sock),
-}
+};
 	
 static const struct proto_ops vrr_sock_ops = {
 	.family		= PF_VRR,
@@ -64,7 +61,7 @@ static const struct proto_ops vrr_sock_ops = {
 	.recvmsg	= sock_common_recvmsg,
 	.mmap		= sock_no_mmap,
 	/* .sendpage	= vrr_sendpage, */
-}
+};
 
 static const struct net_proto_family vrr_family_ops = {
 	.family = PF_VRR,
@@ -78,10 +75,10 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 	struct sock *sk;
 	int err;
 
-	sock->ops = proto_ops;
+	sock->ops = &vrr_sock_ops;
 
 	err = -ENOBUFS;
-	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, vrr_prot);
+	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_prot);
 	if (sk == NULL)
 		goto out;
 
@@ -103,27 +100,3 @@ out:
 	return err;
 }
 
-int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
-	    struct net_device *orig_dev)
-{
-	/* Do stuff! */
-	printk("Received a VRR packet!");
-}
-
-struct packet_type vrr_packet_type = {
-	.type = cpu_to_be16(ETH_P_VRR),
-	.func = vrr_rcv,
-};
-
-static int __init vrr_init(void)
-{
-	dev_add_pack(&vrr_packet_type);
-	return 0;
-}
-
-static void __exit vrr_exit(void)
-{
-	dev_remove_pack(&vrr_packet_type);
-}
-
-MODULE_LICENSE("GPL");
