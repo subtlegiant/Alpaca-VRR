@@ -27,40 +27,40 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 		      int kern);
 
 static const struct proto vrr_prot = {
-	.name		= "VRR",
-	.owner		= THIS_MODULE,
-	/* .close		= vrr_close, */
-	/* .destroy	= vrr_destroy, */
-	/* .connect	= vrr_connect, */
-	/* .disconnect	= vrr_disconnect, */
-	/* .ioctl		= vrr_ioctl, */
-	/* .init		= vrr_init, */
-	/* .setsockopt	= vrr_setsockopt, */
-	/* .getsockopt	= vrr_getsockopt, */
-	/* .sendmsg	= vrr_sendmsg, */
-	/* .recvmsg	= vrr_recvmsg, */
-	/* .bind		= vrr_bind, */
+	.name = "VRR",
+	.owner = THIS_MODULE,
+	/* .close               = vrr_close, */
+	/* .destroy     = vrr_destroy, */
+	/* .connect     = vrr_connect, */
+	/* .disconnect  = vrr_disconnect, */
+	/* .ioctl               = vrr_ioctl, */
+	/* .init                = vrr_init, */
+	/* .setsockopt  = vrr_setsockopt, */
+	/* .getsockopt  = vrr_getsockopt, */
+	/* .sendmsg     = vrr_sendmsg, */
+	/* .recvmsg     = vrr_recvmsg, */
+	/* .bind                = vrr_bind, */
 };
-	
+
 static const struct proto_ops vrr_sock_ops = {
-	.family		= PF_VRR,
-	.owner		= THIS_MODULE,
-	/* .release	= vrr_release, */
-	/* .bind		= vrr_bind, */
-	/* .connect	= vrr_connect, */
-	.socketpair	= sock_no_socketpair,
-	.accept		= sock_no_accept,
-	/* .getname	= vrr_getname, */
-	/* .poll		= datagram_poll, */
-	/* .ioctl		= vrr_ioctl, */
-	.listen		= sock_no_listen,
-	/* .shutdown	= vrr_shutdown, */
-	/* .setsockopt	= sock_common_setsockopt, */
-	/* .getsockopt	= sock_common_getsockopt, */
-	/* .sendmsg	= vrr_sendmsg, */
-	.recvmsg	= sock_common_recvmsg,
-	.mmap		= sock_no_mmap,
-	/* .sendpage	= vrr_sendpage, */
+	.family = PF_VRR,
+	.owner = THIS_MODULE,
+	/* .release     = vrr_release, */
+	/* .bind                = vrr_bind, */
+	/* .connect     = vrr_connect, */
+	.socketpair = sock_no_socketpair,
+	.accept = sock_no_accept,
+	/* .getname     = vrr_getname, */
+	/* .poll                = datagram_poll, */
+	/* .ioctl               = vrr_ioctl, */
+	.listen = sock_no_listen,
+	/* .shutdown    = vrr_shutdown, */
+	/* .setsockopt  = sock_common_setsockopt, */
+	/* .getsockopt  = sock_common_getsockopt, */
+	/* .sendmsg     = vrr_sendmsg, */
+	.recvmsg = sock_common_recvmsg,
+	.mmap = sock_no_mmap,
+	/* .sendpage    = vrr_sendpage, */
 };
 
 static const struct net_proto_family vrr_family_ops = {
@@ -86,8 +86,8 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 
 	sock_init_data(sock, sk);
 
-	/* sk->sk_destruct	= vrr_sock_destruct; */
-	sk->sk_protocol	= protocol;
+	/* sk->sk_destruct      = vrr_sock_destruct; */
+	sk->sk_protocol = protocol;
 
 	sk_refcnt_debug_inc(sk);
 
@@ -96,7 +96,6 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 		if (err)
 			sk_common_release(sk);
 	}
-out:
+ out:
 	return err;
 }
-

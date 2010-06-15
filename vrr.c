@@ -17,52 +17,52 @@ static struct packet_type vrr_packet_type __read_mostly = {
 
 //static struct vrr_node *node;
 static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
-						   char *buf)
+		       char *buf)
 {
 	int value = 3;
 	return sprintf(buf, "%d", value);
 }
 
-static struct kobj_attribute vrr_attr =
-		__ATTR(id, 0666, id_show, NULL);
+static struct kobj_attribute vrr_attr = __ATTR(id, 0666, id_show, NULL);
 
 static struct attribute *attrs[] = {
-		&vrr_attr.attr,
-		NULL,
+	&vrr_attr.attr,
+	NULL,
 };
 
 static struct attribute_group attr_group = {
-		.attrs = attrs,
+	.attrs = attrs,
 };
+
 static struct kobject *vrr_obj;
 
 //Initialize the module
 static int __init vrr_init(void)
 {
 	/*1. Initialize an empty routing table
-	2. create vrr_node structure
-	3. Initialize sysfs hooks ??
-	4. Build hello packet and send to establish a proxy 
-	5. There is probably alot more than this*/
+	   2. create vrr_node structure
+	   3. Initialize sysfs hooks ??
+	   4. Build hello packet and send to establish a proxy 
+	   5. There is probably alot more than this */
 	int err = 0;
 	//node->id = 3;
-	
+
 	/*if(!(node = kzalloc(sizeof(struct vrr_node), GFP_KERNEL)));
-			return -ENOMEM;*/
+	   return -ENOMEM; */
 
 	dev_add_pack(&vrr_packet_type);
 
 	vrr_obj = kobject_create_and_add("vrr", kernel_kobj);
-	if(!vrr_obj)
+	if (!vrr_obj)
 		return -ENOMEM;
-	
+
 	err = sysfs_create_group(vrr_obj, &attr_group);
-	if(err)
+	if (err)
 		kobject_put(vrr_obj);
-	
+
 	return err;
-	
-}	 
+
+}
 
 static void __exit vrr_exit(void)
 {

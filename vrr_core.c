@@ -7,7 +7,3 @@
 #include <linux/sysfs.h>
 #include <linux/module.h>
 #include <linux/init.h>
-
-
-
-
