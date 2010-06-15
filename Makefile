@@ -1,7 +1,6 @@
 TARGET := vrr_core
 obj-m := $(TARGET).o
 KDIR := /lib/modules/$(shell uname -r)/build
-INCLUDE := -isystem /lib/modules/`uname -r`/build/include
 PWD := $(shell pwd)
 
 default:
