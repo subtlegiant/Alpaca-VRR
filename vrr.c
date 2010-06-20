@@ -36,14 +36,17 @@ static struct attribute_group attr_group = {
 
 static struct kobject *vrr_obj;
 
+
 //Initialize the module
 static int __init vrr_init(void)
 {
-	/*1. Initialize an empty routing table
-	   2. create vrr_node structure
-	   3. Initialize sysfs hooks ??
-	   4. Build hello packet and send to establish a proxy 
-	   5. There is probably alot more than this */
+	/* 1. Initialize an empty routing table
+       2. create empty pset (tree/CLL?)
+       3. create empty vset (tree/CLL?)
+	   4. create vrr_node structure
+	   5. Initialize sysfs hooks ??
+	   6. Build hello packet and send to establish a proxy 
+	   7. There is probably alot more than this */
 	int err = 0;
 	//node->id = 3;
 

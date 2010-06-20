@@ -10,6 +10,15 @@
 /* PATCH: include/linux/if_ether.h */
 #define ETH_P_VRR 0x8777
 
+//Data packet types:
+#define VRR_DATA    1   
+#define VRR_HELLO   2
+#define VRR_SETUP_REQ   3       
+#define VRR_SETUP   4   
+#define VRR_SETUP_FAIL  5
+#define VRR_TEARDOWN    6   
+
+
 struct vrr_node {
 	int id; //128 bit identifier to match those of IP
 	int vset_size; 
