@@ -19,6 +19,7 @@
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <linux/net.h>
+#include <linux/skbuff.h>
 #include <net/sock.h>
 
 #include "vrr.h"
@@ -26,7 +27,38 @@
 static int vrr_create(struct net *net, struct socket *sock, int protocol,
 		      int kern);
 
-static const struct proto vrr_prot = {
+int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
+		struct msghdr *msg, size_t size, int flags)
+{
+	struct sock *sk = sock->sk;
+	struct sk_buff *skb;
+	int rc;
+
+	VRR_DBG("sock %p sk %p len %zu", sock, sk, size);
+
+	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
+				flags & MSG_DONTWAIT, &rc);
+	if (!skb)
+		goto out;
+
+out:
+	return rc;
+}
+
+int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
+		struct msghdr *msg, size_t len)
+{
+	struct sock *sk = sock->sk;
+	struct sk_buff *skb;
+	int sent = 0;
+
+	if (sk->sk_shutdown & SEND_SHUTDOWN)
+		return -EPIPE;
+
+	VRR_DBG("sock %p, sk %p", sock, sk);
+}
+
+static struct proto vrr_prot = {
 	.name = "VRR",
 	.owner = THIS_MODULE,
 	/* .close               = vrr_close, */
@@ -42,7 +74,7 @@ static const struct proto vrr_prot = {
 	/* .bind                = vrr_bind, */
 };
 
-static const struct proto_ops vrr_sock_ops = {
+static struct proto_ops vrr_sock_ops = {
 	.family = PF_VRR,
 	.owner = THIS_MODULE,
 	/* .release     = vrr_release, */
@@ -58,7 +90,7 @@ static const struct proto_ops vrr_sock_ops = {
 	/* .setsockopt  = sock_common_setsockopt, */
 	/* .getsockopt  = sock_common_getsockopt, */
 	/* .sendmsg     = vrr_sendmsg, */
-	.recvmsg = sock_common_recvmsg,
+	.recvmsg = vrr_recvmsg,
 	.mmap = sock_no_mmap,
 	/* .sendpage    = vrr_sendpage, */
 };
@@ -74,6 +106,8 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 {
 	struct sock *sk;
 	int err;
+
+	VRR_DBG("proto: %u", protocol);
 
 	sock->ops = &vrr_sock_ops;
 

@@ -18,6 +18,10 @@
 #define VRR_SETUP_FAIL  5
 #define VRR_TEARDOWN    6   
 
+#define VRR_INFO(fmt, arg...)	printk(KERN_INFO "VRR: " fmt "\n" , ## arg)
+#define VRR_ERR(fmt, arg...)	printk(KERN_ERR "%s: " fmt "\n" , __func__ , ## arg)
+#define VRR_DBG(fmt, arg...)	pr_debug("%s: " fmt "\n" , __func__ , ## arg)
+
 
 struct vrr_node {
 	int id; //128 bit identifier to match those of IP
@@ -33,6 +37,11 @@ struct vrr_packet {
 	u_int dst; //the destination id
 	u_int payload; //data being sent
 	u_int pk_type; //hello message, setup, setup_req etc
+};
+
+struct vrr_sock {
+	struct sock 	sk;
+	u_int 		dest_addr;
 };
 
 /*

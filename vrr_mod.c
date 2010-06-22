@@ -10,6 +10,10 @@
 
 #include "vrr.h"
 
+MODULE_AUTHOR("Cameron Kidd <cameronk@cs.pdx.edu>");
+MODULE_DESCRIPTION("Core for Virtual Ring Routing Protocol");
+MODULE_LICENSE("GPL");
+
 static struct packet_type vrr_packet_type __read_mostly = {
 	.type = cpu_to_be16(ETH_P_VRR),
 	.func = vrr_rcv,
@@ -53,6 +57,8 @@ static int __init vrr_init(void)
 	/*if(!(node = kzalloc(sizeof(struct vrr_node), GFP_KERNEL)));
 	   return -ENOMEM; */
 
+	VRR_INFO("VRR: Begin init");
+
 	dev_add_pack(&vrr_packet_type);
 
 	vrr_obj = kobject_create_and_add("vrr", kernel_kobj);
@@ -63,6 +69,8 @@ static int __init vrr_init(void)
 	if (err)
 		kobject_put(vrr_obj);
 
+	VRR_INFO("VRR: End init");
+
 	return err;
 
 }
@@ -72,10 +80,6 @@ static void __exit vrr_exit(void)
 	dev_remove_pack(&vrr_packet_type);
 	kobject_put(vrr_obj);
 }
-
-MODULE_AUTHOR("Cameron Kidd <cameronk@cs.pdx.edu>");
-MODULE_DESCRIPTION("Core for Virtual Ring Routing Protocol");
-MODULE_LICENSE("GPL");
 
 module_init(vrr_init);
 module_exit(vrr_exit);
