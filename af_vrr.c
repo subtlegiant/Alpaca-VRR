@@ -58,7 +58,7 @@ int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	VRR_DBG("sock %p, sk %p", sock, sk);
 }
 
-static struct proto vrr_prot = {
+struct proto vrr_prot = {
 	.name = "VRR",
 	.owner = THIS_MODULE,
 	/* .close               = vrr_close, */
@@ -95,7 +95,7 @@ static struct proto_ops vrr_sock_ops = {
 	/* .sendpage    = vrr_sendpage, */
 };
 
-static const struct net_proto_family vrr_family_ops = {
+const struct net_proto_family vrr_family_ops = {
 	.family = PF_VRR,
 	.create = vrr_create,
 	.owner = THIS_MODULE,
