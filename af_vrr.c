@@ -38,10 +38,11 @@ int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 
 	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
 				flags & MSG_DONTWAIT, &rc);
-	if (!skb)
+	if (!skb) {
 		goto out;
+	}
 
-out:
+ out:
 	return rc;
 }
 
@@ -52,8 +53,9 @@ int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	struct sk_buff *skb;
 	int sent = 0;
 
-	if (sk->sk_shutdown & SEND_SHUTDOWN)
+	if (sk->sk_shutdown & SEND_SHUTDOWN) {
 		return -EPIPE;
+	}
 
 	VRR_DBG("sock %p, sk %p", sock, sk);
 }
@@ -113,8 +115,9 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 
 	err = -ENOBUFS;
 	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_prot);
-	if (sk == NULL)
+	if (sk == NULL) {
 		goto out;
+	}
 
 	err = 0;
 
@@ -127,8 +130,9 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 
 	if (sk->sk_prot->init) {
 		err = sk->sk_prot->init(sk);
-		if (err)
+		if (err) {
 			sk_common_release(sk);
+		}
 	}
  out:
 	return err;

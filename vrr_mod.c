@@ -40,13 +40,12 @@ static struct attribute_group attr_group = {
 
 static struct kobject *vrr_obj;
 
-
 //Initialize the module
 static int __init vrr_init(void)
 {
 	/* 1. Initialize an empty routing table
-       2. create empty pset (tree/CLL?)
-       3. create empty vset (tree/CLL?)
+	   2. create empty pset (tree/CLL?)
+	   3. create empty vset (tree/CLL?)
 	   4. create vrr_node structure
 	   5. Initialize sysfs hooks ??
 	   6. Build hello packet and send to establish a proxy 
@@ -60,8 +59,9 @@ static int __init vrr_init(void)
 	VRR_INFO("Begin init");
 
 	err = proto_register(&vrr_prot, 1);
-	if (err)
+	if (err) {
 		goto out;
+	}
 
 	/* Initialize routing/sysfs stuff here */
 	/* TODO: Split these into separate functions */
@@ -72,20 +72,22 @@ static int __init vrr_init(void)
 	}
 
 	err = sysfs_create_group(vrr_obj, &attr_group);
-	if (err)
+	if (err) {
 		kobject_put(vrr_obj);
+	}
 	/* --- */
 
 	/* Register our sockets protocol handler */
 	err = sock_register(&vrr_family_ops);
-	if (err)
+	if (err) {
 		goto out;
+	}
 
 	dev_add_pack(&vrr_packet_type);
 
 	VRR_INFO("End init");
 
-out:
+ out:
 	return err;
 
 }
@@ -94,7 +96,7 @@ static void __exit vrr_exit(void)
 {
 	sock_unregister(AF_VRR);
 	dev_remove_pack(&vrr_packet_type);
-	
+
 	/* Cleanup routing/sysfs stuff here */
 	kobject_put(vrr_obj);
 
