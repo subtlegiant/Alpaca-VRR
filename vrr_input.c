@@ -23,6 +23,7 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	printk("Received a VRR packet!");
 
 	//int pt = get packet type out of packet
+	/* skb->pkt_type should be ETH_P_VRR */
 
 	/*
 	if (pt == 0) { //Data
@@ -31,35 +32,30 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 			send to application layer
 		else
 			send packet back out to nh
-	}
-	else if (pt == 1) { //Hello
+	} else if (pt == 1) { //Hello
 		if src is in pset
 			do nothing
 		else if (me == active)
 			Need to understand 3.3.1, 3.3.2 and 3.3.3 text
 		else	//proxy found
-			send setup_req packet to proxy	
-	}
-	else if (pt == 2) { //Setup Request
+			send setup_req packet to proxy
+	} else if (pt == 2) { //Setup Request
 		send Setup packet to src from me, and include my vset
 		add src to vset
-	}
-	else if (pt == 3) { //Setup
+	} else if (pt == 3) { //Setup
 		add src to vset
 		get vset' from packet
 		send setup_req to all nodes in vset'
 		once all setups received from further sent setup_req, then activate me
-	}
-	else if (pt == 4) { //Setup Fail
-
-	}
-	else if (pt == 5) { //Teardown
-
-	}
-	else {
-		//drop packet?
+	} else if (pt == 4) { //Setup Fail
+	} else if (pt == 5) { //Teardown
+	} else {
+		goto drop;
 	}
 
+ drop:
+	kfree_skb(skb);
+	return NET_RX_DROP;
 	*/
 }
 
