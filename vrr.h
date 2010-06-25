@@ -22,6 +22,20 @@
 #define VRR_ERR(fmt, arg...)	printk(KERN_ERR "%s: " fmt "\n" , __func__ , ## arg)
 #define VRR_DBG(fmt, arg...)	pr_debug("%s: " fmt "\n" , __func__ , ## arg)
 
+#define VRR_MAX_HEADER (16 + 128)
+
+//Offsets for accessing data in the header
+#define VRR_VERS        0x0
+#define VRR_PKT_TYPE    0x2
+#define VRR_PROTO_TYPE  0x4
+#define VRR_TLEN        0x6
+#define VRR_FREE        0xA
+#define VRR_CSUM        0xC
+#define VRR_SRC         0x10
+#define VRR_DST         0x18
+
+#define u8 unsigned char
+#define u16 unsigned short
 
 struct vrr_node {
 	int id; //128 bit identifier to match those of IP
