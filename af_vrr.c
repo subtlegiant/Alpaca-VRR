@@ -57,6 +57,8 @@ int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 		return -EPIPE;
 	}
 
+	/* Send packet */
+	/* vrr_ouput(skb); */
 	VRR_DBG("sock %p, sk %p", sock, sk);
 }
 
@@ -91,7 +93,7 @@ static struct proto_ops vrr_sock_ops = {
 	/* .shutdown    = vrr_shutdown, */
 	/* .setsockopt  = sock_common_setsockopt, */
 	/* .getsockopt  = sock_common_getsockopt, */
-	/* .sendmsg     = vrr_sendmsg, */
+	.sendmsg = vrr_sendmsg,
 	.recvmsg = vrr_recvmsg,
 	.mmap = sock_no_mmap,
 	/* .sendpage    = vrr_sendpage, */
@@ -109,31 +111,26 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 	struct sock *sk;
 	int err;
 
+	VRR_INFO("Begin vrr_create");
 	VRR_DBG("proto: %u", protocol);
-
-	sock->ops = &vrr_sock_ops;
 
 	err = -ENOBUFS;
 	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_prot);
-	if (sk == NULL) {
+	if (!sk) {
 		goto out;
 	}
-
 	err = 0;
 
+	if (sock) {
+		sock->ops = &vrr_sock_ops;
+	}
 	sock_init_data(sock, sk);
 
-	/* sk->sk_destruct      = vrr_sock_destruct; */
+	/* sk->sk_destruct      = vrr_destruct; */
+	sk->sk_family = PF_VRR;
 	sk->sk_protocol = protocol;
-
-	sk_refcnt_debug_inc(sk);
-
-	if (sk->sk_prot->init) {
-		err = sk->sk_prot->init(sk);
-		if (err) {
-			sk_common_release(sk);
-		}
-	}
+	sk->sk_allocation = gfp;
+	VRR_INFO("End vrr_create");
  out:
 	return err;
 }
