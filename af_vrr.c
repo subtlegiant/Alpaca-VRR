@@ -51,7 +51,7 @@ static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
 	/* vrr->src = get_vrr_id(); */
 	vrr->dest_addr = addr->svrr_addr;
 
- out:
+out:
 	return err;
 }
 
@@ -86,7 +86,7 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 		goto out;
 	}
 
- out:
+out:
 	return rc;
 }
 
@@ -108,27 +108,10 @@ int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	return err;
 }
 
-<<<<<<< HEAD
 struct proto vrr_proto = {
 	.name = "VRR",
 	.owner = THIS_MODULE,
 	.max_header = VRR_MAX_HEADER,
-=======
-struct proto vrr_prot = {
-	.name = "VRR",
-	.owner = THIS_MODULE,
-	/* .close               = vrr_close, */
-	/* .destroy     = vrr_destroy, */
-	/* .connect     = vrr_connect, */
-	/* .disconnect  = vrr_disconnect, */
-	/* .ioctl               = vrr_ioctl, */
-	/* .init                = vrr_init, */
-	/* .setsockopt  = vrr_setsockopt, */
-	/* .getsockopt  = vrr_getsockopt, */
-	/* .sendmsg     = vrr_sendmsg, */
-	/* .recvmsg     = vrr_recvmsg, */
-	/* .bind                = vrr_bind, */
->>>>>>> 67673e7674219f87fad65d770d85cc68a3968498
 	.obj_size = sizeof(struct vrr_sock),
 };
 
@@ -153,9 +136,8 @@ static struct proto_ops vrr_proto_ops = {
 	/* .sendpage            = vrr_sendpage, */
 };
 
-static int vrr_create(struct net *net, struct socket *sock, int protocol,
-		      int kern)
-{
+static int vrr_create(struct net *net, struct socket *sock,
+		      int protocol, int kern) {
 	struct sock *sk;
 	struct vrr_sock *vrr;
 	int err;
@@ -180,13 +162,9 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 	/* sk->sk_destruct      = vrr_destruct; */
 	sk->sk_family = PF_VRR;
 	sk->sk_protocol = protocol;
-<<<<<<< HEAD
 	sk->sk_allocation = GFP_KERNEL;
-=======
-	//sk->sk_allocation = gfp;
->>>>>>> 67673e7674219f87fad65d770d85cc68a3968498
 	VRR_INFO("End vrr_create");
- out:
+out:
 	return err;
 }
 

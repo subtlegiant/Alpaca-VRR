@@ -94,7 +94,6 @@ static int __init vrr_init(void)
 
  out:
 	return err;
-
 }
 
 static void __exit vrr_exit(void)
