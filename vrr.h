@@ -47,7 +47,8 @@ struct vrr_node {
 	int id; //128 bit identifier to match those of IP
 	int vset_size; 
 	int rtable_value; //the size of the virtual neighborhood
-	//*rt = //pointer to the routing table 
+	//*rt = //pointer to the routing table
+	//*vset = //pointer to vset structure
 	//*pset = //pointer to a pset structure that maintains
 	// the states of pset connections
 };
@@ -60,15 +61,25 @@ struct vrr_packet {
 };
 
 struct vrr_sock {
-	struct sock 	sk;
-        u_int		src_addr;
+	struct sock *sk;
+    u_int		src_addr;
 	u_int 		dest_addr;
 };
+
+//Struct for use in VRR Routing Table
+typedef struct routing_table_entry {
+	u_int ea;		//endpoint A
+	u_int eb;		//endpoint B
+	u_int na;		//next A
+	u_int nb;		//next B
+	int path_id;		//Path ID
+} rt_entry;
+
 
 static inline struct vrr_sock *vrr_sk(const struct sock *sk)
 {
         return (struct vrr_sock *)sk;
-}
+};
 
 /*
  * Functions provided by vrr_input.c
@@ -76,5 +87,9 @@ static inline struct vrr_sock *vrr_sk(const struct sock *sk)
 
 extern int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 		   struct packet_type *pt, struct net_device *orig_dev);
+
+int get_pkt_type(struct sk_buff *skb);
+int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
+int vrr_node_init(void);
 
 #endif	/* _VRR_H */

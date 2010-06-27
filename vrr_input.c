@@ -1,17 +1,9 @@
 #include "linux/kernel.h"
 #include "linux/skbuff.h"
 #include "linux/netdevice.h"
+#include "vrr.h"
 
 static int vrr_active = 0;	//Activates after first route successfully set up
-
-//Struct for use in VRR Routing Table
-typedef struct routing_table_entry {
-	u_int ea;		//endpoint A
-	u_int eb;		//endpoint B
-	u_int na;		//next A
-	u_int nb;		//next B
-	int path_id		//Path ID
-} rt_entry;
 
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	    struct net_device *orig_dev)
@@ -19,41 +11,41 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	/* Do stuff! */
 	VRR_DBG("Received a VRR packet!");
 
-	int pt = get_pkt_type(skb);
+	int vrr_pkt_type = get_pkt_type(skb);
 	/* skb->pkt_type should be ETH_P_VRR */
 
 	/*
-	if (pt == 0) { //Data
-		u_int nh = NextHop(rt, dst)		//find next hop
-		if nh == 0
-			send to application layer
-		else
-			send packet back out to nh
-	} else if (pt == 1) { //Hello
-		if src is in pset
-			do nothing
-		else if (me == active)
-			Need to understand 3.3.1, 3.3.2 and 3.3.3 text
-		else	//proxy found
-			send setup_req packet to proxy
-	} else if (pt == 2) { //Setup Request
-		send Setup packet to src from me, and include my vset
-		add src to vset
-	} else if (pt == 3) { //Setup
-		add src to vset
-		get vset' from packet
-		send setup_req to all nodes in vset'
-		once all setups received from further sent setup_req, then activate me
-	} else if (pt == 4) { //Setup Fail
-	} else if (pt == 5) { //Teardown
-	} else {
-		goto drop;
-	}
+	   if (pt == 0) { //Data
+	   u_int nh = NextHop(rt, dst)          //find next hop
+	   if nh == 0
+	   send to application layer
+	   else
+	   send packet back out to nh
+	   } else if (pt == 1) { //Hello
+	   if src is in pset
+	   do nothing
+	   else if (me == active)
+	   Need to understand 3.3.1, 3.3.2 and 3.3.3 text
+	   else //proxy found
+	   send setup_req packet to proxy
+	   } else if (pt == 2) { //Setup Request
+	   send Setup packet to src from me, and include my vset
+	   add src to vset
+	   } else if (pt == 3) { //Setup
+	   add src to vset
+	   get vset' from packet
+	   send setup_req to all nodes in vset'
+	   once all setups received from further sent setup_req, then activate me
+	   } else if (pt == 4) { //Setup Fail
+	   } else if (pt == 5) { //Teardown
+	   } else {
+	   goto drop;
+	   }
 
- drop:
-	kfree_skb(skb);
-	return NET_RX_DROP;
-	*/
+	   drop:
+	   kfree_skb(skb);
+	   return NET_RX_DROP;
+	 */
 }
 
 /*DEFINITIONS

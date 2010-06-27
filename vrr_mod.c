@@ -9,6 +9,7 @@
 #include <net/sock.h>
 
 #include "vrr.h"
+#include "vrr_data.h"
 
 /* Defined in af_vrr.c */
 extern const struct net_proto_family vrr_family_ops;
@@ -23,7 +24,7 @@ static struct packet_type vrr_packet_type __read_mostly = {
 static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
 		       char *buf)
 {
-	int value = 3;
+	int value = 4;
 	return sprintf(buf, "%d", value);
 }
 
@@ -50,6 +51,7 @@ static int __init vrr_init(void)
 	   5. Initialize sysfs hooks ??
 	   6. Build hello packet and send to establish a proxy 
 	   7. There is probably alot more than this */
+
 	int err = 0;
 	//node->id = 3;
 
@@ -57,6 +59,9 @@ static int __init vrr_init(void)
 	   return -ENOMEM; */
 
 	VRR_INFO("Begin init");
+
+	vrr_data_init();
+	vrr_node_init();
 
 	err = proto_register(&vrr_proto, 1);
 	if (err) {

@@ -108,10 +108,27 @@ int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	return err;
 }
 
+<<<<<<< HEAD
 struct proto vrr_proto = {
 	.name = "VRR",
 	.owner = THIS_MODULE,
 	.max_header = VRR_MAX_HEADER,
+=======
+struct proto vrr_prot = {
+	.name = "VRR",
+	.owner = THIS_MODULE,
+	/* .close               = vrr_close, */
+	/* .destroy     = vrr_destroy, */
+	/* .connect     = vrr_connect, */
+	/* .disconnect  = vrr_disconnect, */
+	/* .ioctl               = vrr_ioctl, */
+	/* .init                = vrr_init, */
+	/* .setsockopt  = vrr_setsockopt, */
+	/* .getsockopt  = vrr_getsockopt, */
+	/* .sendmsg     = vrr_sendmsg, */
+	/* .recvmsg     = vrr_recvmsg, */
+	/* .bind                = vrr_bind, */
+>>>>>>> 67673e7674219f87fad65d770d85cc68a3968498
 	.obj_size = sizeof(struct vrr_sock),
 };
 
@@ -163,7 +180,11 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 	/* sk->sk_destruct      = vrr_destruct; */
 	sk->sk_family = PF_VRR;
 	sk->sk_protocol = protocol;
+<<<<<<< HEAD
 	sk->sk_allocation = GFP_KERNEL;
+=======
+	//sk->sk_allocation = gfp;
+>>>>>>> 67673e7674219f87fad65d770d85cc68a3968498
 	VRR_INFO("End vrr_create");
  out:
 	return err;
