@@ -1,5 +1,5 @@
 obj-m := vrr.o
-vrr-objs := vrr_mod.o vrr_core.o vrr_input.o af_vrr.o
+vrr-objs := vrr_mod.o vrr_core.o vrr_input.o af_vrr.o vrr_data.o
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 

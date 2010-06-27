@@ -1,5 +1,5 @@
 
 
-void vrr_data_init();   //Routes, Pset, and Vset initialization
+void vrr_data_init(void);   //Routes, Pset, and Vset initialization
 
 
