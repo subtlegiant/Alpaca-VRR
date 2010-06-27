@@ -12,7 +12,7 @@
 
 /* Defined in af_vrr.c */
 extern const struct net_proto_family vrr_family_ops;
-extern struct proto vrr_prot;
+extern struct proto vrr_proto;
 
 static struct packet_type vrr_packet_type __read_mostly = {
 	.type = cpu_to_be16(ETH_P_VRR),
@@ -58,7 +58,7 @@ static int __init vrr_init(void)
 
 	VRR_INFO("Begin init");
 
-	err = proto_register(&vrr_prot, 1);
+	err = proto_register(&vrr_proto, 1);
 	if (err) {
 		goto out;
 	}
@@ -100,7 +100,7 @@ static void __exit vrr_exit(void)
 	/* Cleanup routing/sysfs stuff here */
 	kobject_put(vrr_obj);
 
-	proto_unregister(&vrr_prot);
+	proto_unregister(&vrr_proto);
 }
 
 MODULE_AUTHOR("Cameron Kidd <cameronk@cs.pdx.edu>");

@@ -37,6 +37,12 @@
 #define u8 unsigned char
 #define u16 unsigned short
 
+struct sockaddr_vrr {
+	sa_family_t	svrr_family;
+	__u32		svrr_addr;
+	__u16		svrr_zero[10];
+};
+
 struct vrr_node {
 	int id; //128 bit identifier to match those of IP
 	int vset_size; 
