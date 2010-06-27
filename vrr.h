@@ -11,12 +11,12 @@
 #define ETH_P_VRR 0x8777
 
 //Data packet types:
-#define VRR_DATA    1   
-#define VRR_HELLO   2
-#define VRR_SETUP_REQ   3       
-#define VRR_SETUP   4   
-#define VRR_SETUP_FAIL  5
-#define VRR_TEARDOWN    6   
+#define VRR_DATA    	0   
+#define VRR_HELLO   	1
+#define VRR_SETUP_REQ   2       
+#define VRR_SETUP   	3   
+#define VRR_SETUP_FAIL  4
+#define VRR_TEARDOWN    5   
 
 #define VRR_INFO(fmt, arg...)	printk(KERN_INFO "VRR: " fmt "\n" , ## arg)
 #define VRR_ERR(fmt, arg...)	printk(KERN_ERR "%s: " fmt "\n" , __func__ , ## arg)
