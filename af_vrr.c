@@ -25,7 +25,8 @@
 #include "vrr.h"
 
 static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
-			 int addrlen, long *timeo, int flags) {
+			 int addrlen, long *timeo, int flags)
+{
 	struct socket *sock = sk->sk_socket;
 	struct vrr_sock *vrr = vrr_sk(sk);
 	int err = -EISCONN;
@@ -50,7 +51,7 @@ static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
 	/* vrr->src = get_vrr_id(); */
 	vrr->dest_addr = addr->svrr_addr;
 
-out:
+ out:
 	return err;
 }
 
@@ -61,16 +62,16 @@ static int vrr_connect(struct socket *sock, struct sockaddr *uaddr,
 	struct sock *sk = sock->sk;
 	int err;
 	long timeo = sock_sndtimeo(sk, flags & O_NONBLOCK);
-	
+
 	lock_sock(sk);
 	err = __vrr_connect(sk, addr, addrlen, &timeo, 0);
 	release_sock(sk);
-	
+
 	return err;
 }
 
 static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
-		struct msghdr *msg, size_t size, int flags)
+		       struct msghdr *msg, size_t size, int flags)
 {
 	struct sock *sk = sock->sk;
 	struct vrr_sock *vrr = vrr_sk(sk);
@@ -108,39 +109,38 @@ int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 }
 
 struct proto vrr_proto = {
-	.name 		= "VRR",
-	.owner 		= THIS_MODULE,
-	.max_header	= VRR_MAX_HEADER,
-        .obj_size	= sizeof(struct vrr_sock),
+	.name = "VRR",
+	.owner = THIS_MODULE,
+	.max_header = VRR_MAX_HEADER,
+	.obj_size = sizeof(struct vrr_sock),
 };
 
 static struct proto_ops vrr_proto_ops = {
-	.family		= PF_VRR,
-	.owner 		= THIS_MODULE,
-	/* .release	= vrr_release, */
-	/* .bind 		= vrr_bind, */
-	.connect	= vrr_connect,
-	.socketpair	= sock_no_socketpair,
-	.accept		= sock_no_accept,
-	/* .getname	= vrr_getname, */
-	/* .poll		= datagram_poll, */
-	/* .ioctl		= vrr_ioctl, */
-	.listen		= sock_no_listen,
-	/* .shutdown	= vrr_shutdown, */
-	/* .setsockopt	= sock_common_setsockopt, */
-	/* .getsockopt	= sock_common_getsockopt, */
-	.sendmsg	= vrr_sendmsg,
-	.recvmsg	= vrr_recvmsg,
-	.mmap 		= sock_no_mmap,
-	/* .sendpage    	= vrr_sendpage, */
+	.family = PF_VRR,
+	.owner = THIS_MODULE,
+	/* .release     = vrr_release, */
+	/* .bind                = vrr_bind, */
+	.connect = vrr_connect,
+	.socketpair = sock_no_socketpair,
+	.accept = sock_no_accept,
+	/* .getname     = vrr_getname, */
+	/* .poll                = datagram_poll, */
+	/* .ioctl               = vrr_ioctl, */
+	.listen = sock_no_listen,
+	/* .shutdown    = vrr_shutdown, */
+	/* .setsockopt  = sock_common_setsockopt, */
+	/* .getsockopt  = sock_common_getsockopt, */
+	.sendmsg = vrr_sendmsg,
+	.recvmsg = vrr_recvmsg,
+	.mmap = sock_no_mmap,
+	/* .sendpage            = vrr_sendpage, */
 };
-
 
 static int vrr_create(struct net *net, struct socket *sock, int protocol,
 		      int kern)
 {
 	struct sock *sk;
-        struct vrr_sock *vrr;
+	struct vrr_sock *vrr;
 	int err;
 
 	VRR_INFO("Begin vrr_create");
@@ -153,7 +153,7 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 	}
 	err = 0;
 
-        vrr = vrr_sk(sk);
+	vrr = vrr_sk(sk);
 
 	if (sock) {
 		sock->ops = &vrr_proto_ops;
