@@ -7,6 +7,17 @@
 #include <linux/sysfs.h>
 #include <linux/module.h>
 #include <linux/init.h>
+#include <linux/skbuff.h>
+#include "vrr.h"
+
+static struct vrr_node vrr = {
+
+};
+
+static int create_vrr_node()
+{
+	vrr_data_init();
+}
 
 /* take a packet node and build header. Add header to sk_buff for
  * transport to layer two.
@@ -19,7 +30,7 @@ static int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	/*the header consists of:
 	 * Version\Unused: 8 bits reserved for future
 	 * Packet Type: 8 bits
-	 *              0: regular packet with payload/data
+	 *      0: regular packet with payload/data
 	 *      1: Hello message
 	 *      2: Setup request
 	 *      3: Setup
@@ -34,6 +45,8 @@ static int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	 * Destination id: 32 bits
 	 *
 	 */
+
+	return 1;
 }
 
 static int rmv_header(struct sk_buff *skb)
@@ -41,11 +54,13 @@ static int rmv_header(struct sk_buff *skb)
 	/*remove the header for handoff to the socket layer
 	 * this is only for packets received
 	 */
+
+	return 1;
 }
 
 /*Check the header for packet type and destination.
   */
-static int get_pkt_type(struct sk_buff *skb)
+int get_pkt_type()
 {
 	/*use the offset to access the
 	 * packet type, return one of the
@@ -53,5 +68,25 @@ static int get_pkt_type(struct sk_buff *skb)
 	 * packet check destination and either
 	 * forward or process
 	 */
+	return 1;
 
+}
+
+int set_vrr_id(u_int vrr_id)
+{
+	if (vrr_id == 0) {
+		/*generate random unsigned int
+		 *arg is always zero at boot time
+		 *but id may be changed/set via
+		 *user space/sysfs which would pass
+		 *a non-zero arg
+		 */
+	}
+
+	else {
+		/*set the id in the vrr node
+		 */
+	}
+
+	return 1;
 }

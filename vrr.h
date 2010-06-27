@@ -41,7 +41,8 @@ struct vrr_node {
 	int id; //128 bit identifier to match those of IP
 	int vset_size; 
 	int rtable_value; //the size of the virtual neighborhood
-	//*rt = //pointer to the routing table 
+	//*rt = //pointer to the routing table
+	//*vset = //pointer to vset structure
 	//*pset = //pointer to a pset structure that maintains
 	// the states of pset connections
 };
@@ -64,5 +65,8 @@ struct vrr_sock {
 
 extern int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 		   struct packet_type *pt, struct net_device *orig_dev);
+
+int get_pkt_type(struct sk_buff *skb);
+int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 
 #endif	/* _VRR_H */

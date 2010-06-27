@@ -23,7 +23,7 @@ static struct packet_type vrr_packet_type __read_mostly = {
 static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
 		       char *buf)
 {
-	int value = 3;
+	int value = 4;
 	return sprintf(buf, "%d", value);
 }
 
@@ -50,6 +50,10 @@ static int __init vrr_init(void)
 	   5. Initialize sysfs hooks ??
 	   6. Build hello packet and send to establish a proxy 
 	   7. There is probably alot more than this */
+
+	int create_vrr_node();
+	int vrr_rt_init();
+	int set_vrr_id();
 	int err = 0;
 	//node->id = 3;
 
