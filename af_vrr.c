@@ -51,7 +51,7 @@ static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
 	/* vrr->src = get_vrr_id(); */
 	vrr->dest_addr = addr->svrr_addr;
 
-out:
+ out:
 	return err;
 }
 
@@ -86,7 +86,7 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 		goto out;
 	}
 
-out:
+ out:
 	return rc;
 }
 
@@ -137,7 +137,8 @@ static struct proto_ops vrr_proto_ops = {
 };
 
 static int vrr_create(struct net *net, struct socket *sock,
-		      int protocol, int kern) {
+		      int protocol, int kern)
+{
 	struct sock *sk;
 	struct vrr_sock *vrr;
 	int err;
@@ -164,7 +165,7 @@ static int vrr_create(struct net *net, struct socket *sock,
 	sk->sk_protocol = protocol;
 	sk->sk_allocation = GFP_KERNEL;
 	VRR_INFO("End vrr_create");
-out:
+ out:
 	return err;
 }
 
