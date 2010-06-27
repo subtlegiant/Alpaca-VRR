@@ -51,9 +51,6 @@ static int __init vrr_init(void)
 	   6. Build hello packet and send to establish a proxy 
 	   7. There is probably alot more than this */
 
-	int create_vrr_node();
-	int vrr_rt_init();
-	int set_vrr_id();
 	int err = 0;
 	//node->id = 3;
 
@@ -61,6 +58,9 @@ static int __init vrr_init(void)
 	   return -ENOMEM; */
 
 	VRR_INFO("Begin init");
+
+	int vrr_data_init();
+	int vrr_node_init();
 
 	err = proto_register(&vrr_prot, 1);
 	if (err) {

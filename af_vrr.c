@@ -133,7 +133,7 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 	/* sk->sk_destruct      = vrr_destruct; */
 	sk->sk_family = PF_VRR;
 	sk->sk_protocol = protocol;
-	sk->sk_allocation = gfp;
+	//sk->sk_allocation = gfp;
 	VRR_INFO("End vrr_create");
  out:
 	return err;
