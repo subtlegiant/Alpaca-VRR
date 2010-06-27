@@ -1,0 +1,32 @@
+# -*- mode: Org -*-
+
+* Transmit
+** Sockets
+   - struct vrr_sock
+     - Members:
+       - struct sock *sk: must be first member
+       - Source address
+       - Destination address
+       - Whatever else we need to build a header
+   - vrr_sock(struct sock *sk)
+     - inline function, just casts sk to vrr_sock
+   - Build vrr_sock in create()
+   - vrr_bind(sk, sockaddr, addr_len)
+     - Basically, just set the source/destination addr in the sock
+     - Maybe check to make sure the addr is valid
+   - vrr_sendmsg(iocb, sk, msg, len)
+     - msg contains an iovec, which points to a bunch of userspace
+       data blocks
+     - allocate an skb for sending using sock_alloc_send_skb
+     - maybe in "build_header()":
+       - populate a vrr header struct (make struct vrr_header)
+       - use skb_put() to pack the header in the skb's user data area
+     - send skb to output function
+** Net device output
+** Questions
+   - We should find out where to store a reference to the net device.
+   - Possibly, we should make routing tables based on struct rtable in
+     net/route.h, and extend dst_entry for our routing table
+     entries. This simplifies many things, including providing the net
+     device pointer. There is also a whole bunch of code that will be
+     useless to us, however.

@@ -11,12 +11,12 @@
 #define ETH_P_VRR 0x8777
 
 //Data packet types:
-#define VRR_DATA    1   
-#define VRR_HELLO   2
-#define VRR_SETUP_REQ   3       
-#define VRR_SETUP   4   
-#define VRR_SETUP_FAIL  5
-#define VRR_TEARDOWN    6   
+#define VRR_DATA    	0   
+#define VRR_HELLO   	1
+#define VRR_SETUP_REQ   2       
+#define VRR_SETUP   	3   
+#define VRR_SETUP_FAIL  4
+#define VRR_TEARDOWN    5   
 
 #define VRR_INFO(fmt, arg...)	printk(KERN_INFO "VRR: " fmt "\n" , ## arg)
 #define VRR_ERR(fmt, arg...)	printk(KERN_ERR "%s: " fmt "\n" , __func__ , ## arg)
@@ -56,8 +56,14 @@ struct vrr_packet {
 
 struct vrr_sock {
 	struct sock 	sk;
+        u_int		src_addr;
 	u_int 		dest_addr;
 };
+
+static inline struct vrr_sock *vrr_sk(const struct sock *sk)
+{
+        return (struct vrr_sock *)sk;
+}
 
 /*
  * Functions provided by vrr_input.c
