@@ -9,6 +9,7 @@
 #include <net/sock.h>
 
 #include "vrr.h"
+#include "vrr_data.h"
 
 /* Defined in af_vrr.c */
 extern const struct net_proto_family vrr_family_ops;
@@ -59,8 +60,8 @@ static int __init vrr_init(void)
 
 	VRR_INFO("Begin init");
 
-	int vrr_data_init();
-	int vrr_node_init();
+	vrr_data_init();
+	vrr_node_init();
 
 	err = proto_register(&vrr_prot, 1);
 	if (err) {

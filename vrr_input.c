@@ -5,7 +5,6 @@
 
 static int vrr_active = 0;	//Activates after first route successfully set up
 
-
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	    struct net_device *orig_dev)
 {

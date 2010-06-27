@@ -63,8 +63,8 @@ int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 }
 
 struct proto vrr_prot = {
-	.name 		= "VRR",
-	.owner 		= THIS_MODULE,
+	.name = "VRR",
+	.owner = THIS_MODULE,
 	/* .close               = vrr_close, */
 	/* .destroy     = vrr_destroy, */
 	/* .connect     = vrr_connect, */
@@ -76,7 +76,7 @@ struct proto vrr_prot = {
 	/* .sendmsg     = vrr_sendmsg, */
 	/* .recvmsg     = vrr_recvmsg, */
 	/* .bind                = vrr_bind, */
-        .obj_size	= sizeof(struct vrr_sock),
+	.obj_size = sizeof(struct vrr_sock),
 };
 
 static struct proto_ops vrr_sock_ops = {
@@ -110,7 +110,7 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 		      int kern)
 {
 	struct sock *sk;
-        struct vrr_sock *vrr;
+	struct vrr_sock *vrr;
 	int err;
 
 	VRR_INFO("Begin vrr_create");
@@ -123,7 +123,7 @@ static int vrr_create(struct net *net, struct socket *sock, int protocol,
 	}
 	err = 0;
 
-        vrr = vrr_sk(sk);
+	vrr = vrr_sk(sk);
 
 	if (sock) {
 		sock->ops = &vrr_sock_ops;

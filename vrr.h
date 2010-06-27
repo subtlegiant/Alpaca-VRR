@@ -66,14 +66,14 @@ typedef struct routing_table_entry {
 	u_int eb;		//endpoint B
 	u_int na;		//next A
 	u_int nb;		//next B
-	int path_id		//Path ID
+	int path_id;		//Path ID
 } rt_entry;
 
 
 static inline struct vrr_sock *vrr_sk(const struct sock *sk)
 {
         return (struct vrr_sock *)sk;
-}
+};
 
 /*
  * Functions provided by vrr_input.c
@@ -84,6 +84,6 @@ extern int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 
 int get_pkt_type(struct sk_buff *skb);
 int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
-int vrr_init_node();
+int vrr_node_init(void);
 
 #endif	/* _VRR_H */
