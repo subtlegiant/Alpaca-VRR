@@ -55,8 +55,14 @@ struct vrr_packet {
 
 struct vrr_sock {
 	struct sock 	sk;
+        u_int		src_addr;
 	u_int 		dest_addr;
 };
+
+static inline struct vrr_sock *vrr_sk(const struct sock *sk)
+{
+        return (struct vrr_sock *)sk;
+}
 
 /*
  * Functions provided by vrr_input.c
