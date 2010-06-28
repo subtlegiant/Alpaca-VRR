@@ -24,9 +24,9 @@ void vrr_data_init()
 }
 
 
-/**
-  * Helper function to search the Red-Black Tree routing table
-  */
+/*
+ * Helper function to search the Red-Black Tree routing table
+ */
 u_int rt_search(struct rb_root *root, u_int value)
 {
 	struct rb_node * node = root->rb_node;  // top of the tree
@@ -45,15 +45,65 @@ u_int rt_search(struct rb_root *root, u_int value)
 }
 
 
-/**
-  * Returns the next hop in the routing table, given the destination
-  * parameter.  Returns -1 when no route exists.
-  */
-u_int get_rt_next(u_int dest)
+/*
+ * Returns the next hop in the routing table, given the destination
+ * parameter.  Returns -1 when no route exists.
+ */
+u_int rt_get_next(u_int dest)
 {
 	u_int next = rt_search(&rt_root, dest);
 	if (next != 0)
 		return next;
 	else
-		return -1;
+		return 0;
 }
+
+
+int rt_add_route(struct routing_table_entry new_entry)
+{
+	return 0;
+}
+
+int rt_remove_nexts(u_int route_hop_to_remove)
+{
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * Physical set functions
+ */
+int pset_add(u_int node)
+{
+	return 0;
+}
+int pset_remove(u_int node)
+{
+	return 0;
+}
+int pset_get_status(u_int node)
+{
+	return 0;
+}
+
+
+
+
+
+
+/*
+ * Virtual set functions
+ */
+
+
+
+
