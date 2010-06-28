@@ -82,9 +82,8 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 
 	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
 				flags & MSG_DONTWAIT, &rc);
-	if (!skb) {
+	if (!skb)
 		goto out;
-	}
 
  out:
 	return rc;
@@ -148,9 +147,9 @@ static int vrr_create(struct net *net, struct socket *sock,
 
 	err = -ENOBUFS;
 	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_proto);
-	if (!sk) {
+	if (!sk)
 		goto out;
-	}
+
 	err = 0;
 
 	vrr = vrr_sk(sk);
