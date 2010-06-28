@@ -12,6 +12,8 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 
 static struct rb_root rt_root;
 
+static u_int vset[VRR_VSET_SIZE];
+
 struct rt_node {
 	struct rb_node node;
 	u_int route;
@@ -103,7 +105,15 @@ int pset_get_status(u_int node)
 /*
  * Virtual set functions
  */
-
-
-
-
+int vset_add(u_int node)
+{
+	return 0;
+}
+int vset_remove(u_int node);
+{
+	return 0;
+}
+u_int * vset_get_all();
+{
+	return vset;
+}
