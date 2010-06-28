@@ -82,15 +82,39 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 
 	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
 				flags & MSG_DONTWAIT, &rc);
-	if (!skb) {
+	if (!skb)
 		goto out;
-	}
 
  out:
 	return rc;
 }
 
-int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
+static void vrr_destroy_sock(struct sock *sk)
+{
+	if (sk->sk_socket) {
+		if (sk->sk_socket->state != SS_UNCONNECTED)
+			sk->sk_socket->state = SS_DISCONNECTING;
+	}
+	sock_put(sk);
+}
+
+static int vrr_release(struct socket *sock)
+{
+	struct sock *sk = sock->sk;
+
+	if (sk) {
+		sock_orphan(sk);
+		sock_hold(sk);
+		lock_sock(sk);
+		vrr_destroy_sock(sk);
+		release_sock(sk);
+		sock_put(sk);
+	}
+
+	return 0;
+}
+
+static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 		struct msghdr *msg, size_t len)
 {
 	struct sock *sk = sock->sk;
@@ -118,21 +142,21 @@ struct proto vrr_proto = {
 static struct proto_ops vrr_proto_ops = {
 	.family = PF_VRR,
 	.owner = THIS_MODULE,
-	/* .release     = vrr_release, */
-	/* .bind                = vrr_bind, */
 	.connect = vrr_connect,
-	.socketpair = sock_no_socketpair,
-	.accept = sock_no_accept,
+	.recvmsg = vrr_recvmsg,
+	.release = vrr_release,
+	.sendmsg = vrr_sendmsg,
+	/* .bind                = vrr_bind, */
 	/* .getname     = vrr_getname, */
 	/* .poll                = datagram_poll, */
 	/* .ioctl               = vrr_ioctl, */
-	.listen = sock_no_listen,
 	/* .shutdown    = vrr_shutdown, */
 	/* .setsockopt  = sock_common_setsockopt, */
 	/* .getsockopt  = sock_common_getsockopt, */
-	.sendmsg = vrr_sendmsg,
-	.recvmsg = vrr_recvmsg,
 	.mmap = sock_no_mmap,
+	.socketpair = sock_no_socketpair,
+	.accept = sock_no_accept,
+	.listen = sock_no_listen,
 	/* .sendpage            = vrr_sendpage, */
 };
 
@@ -148,9 +172,9 @@ static int vrr_create(struct net *net, struct socket *sock,
 
 	err = -ENOBUFS;
 	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_proto);
-	if (!sk) {
+	if (!sk)
 		goto out;
-	}
+
 	err = 0;
 
 	vrr = vrr_sk(sk);
