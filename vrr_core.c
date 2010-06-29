@@ -8,10 +8,14 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/skbuff.h>
+#include <linux/errno.h>
 
 #include "vrr.h"
 
-static struct vrr_node vrr = { 0, 0, 0
+static struct vrr_node vrr = {
+	0,
+	VRR_VSET_SIZE,
+	0
 };
 
 int vrr_node_init()
@@ -24,7 +28,11 @@ int vrr_node_init()
 
 	err = set_vrr_id(rand_id);
 
-	return 1;
+	return err;
+}
+
+int send_setup_msg()
+{
 }
 
 /* take a packet node and build header. Add header to sk_buff for
@@ -97,4 +105,48 @@ int set_vrr_id(u_int vrr_id)
 	}
 
 	return 1;
+}
+
+/*called by sysfs show function or
+ * sockets module
+ */
+u_int get_vrr_id()
+{
+	if (vrr == NULL)
+		return -ENODATA;
+
+	return vrr->id;
+}
+
+/*build and send a hello packet */
+
+int send_hpkt()
+{
+	struct sk_buff *skb;
+	struct vrr_packet *hpkt;
+	/* Creates an sk_buff. Stuffs with
+	 * vrr related info...
+	 * hello packet payload consists of the arrays
+	 * in the hpkt structure dilineated by
+	 * zeroes. Ends with a call to build
+	 * header which wraps the header around
+	 * packet. Pass to vrr_output
+	 */
+	build_header(skb, hpkt);
+	//vrr_output(skb);.
+
+	return 1;
+}
+
+/*build and send a setup request*/
+int send_setup_req()
+{
+	struct sk_buff *skb;
+	struct vrr_packet *set_req;
+
+	set_req->pkt_type = VRR_SETUP;
+	build_header(skb, set_req);
+
+	//vrr_output(skb);
+
 }

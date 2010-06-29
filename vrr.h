@@ -23,6 +23,7 @@
 #define VRR_DBG(fmt, arg...)	pr_debug("%s: " fmt "\n" , __func__ , ## arg)
 
 #define VRR_MAX_HEADER (16 + 128)
+#define VRR_VSET_SIZE	4
 
 //Offsets for accessing data in the header
 #define VRR_VERS        0x0
@@ -37,14 +38,10 @@
 #define u8 unsigned char
 #define u16 unsigned short
 
-struct sockaddr_vrr {
-	sa_family_t	svrr_family;
-	__u32		svrr_addr;
-	__u16		svrr_zero[10];
-};
+static int pset_size = 0;
 
 struct vrr_node {
-	int id; //128 bit identifier to match those of IP
+	u_int id; //128 bit identifier to match those of IP
 	int vset_size; 
 	int rtable_value; //the size of the virtual neighborhood
 	//*rt = //pointer to the routing table
@@ -57,13 +54,20 @@ struct vrr_packet {
 	u_int src; //the current node id
 	u_int dst; //the destination id
 	u_int payload; //data being sent
-	u_int pk_type; //hello message, setup, setup_req etc
+	u_int pkt_type; //hello message, setup, setup_req etc
 };
 
 struct vrr_sock {
 	struct sock *sk;
-    u_int		src_addr;
-	u_int 		dest_addr;
+        u_int src_addr;
+	u_int dest_addr;
+};
+
+/* the hello packet */
+struct vrr_hpkt {
+	//int l_active[pset_size];
+//	int l_not_active[pset_size];
+//	int pending[pset_size];
 };
 
 //Struct for use in VRR Routing Table
@@ -90,6 +94,10 @@ extern int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 
 int get_pkt_type(struct sk_buff *skb);
 int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
+int get_vrr_id(void);
 int vrr_node_init(void);
+int send_hpkt(void);
+int send_setup_req(void);
+
 
 #endif	/* _VRR_H */
