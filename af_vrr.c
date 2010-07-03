@@ -43,13 +43,13 @@ static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
 	}
 
 	err = -EINVAL;
-	if (addr == NULL || addrlen != sizeof(struct sockaddr_vrr))
+	/*if (addr == NULL || addrlen != sizeof(sockaddr_vrr))
 		goto out;
-	if (addr->svrr_family != AF_VRR)
-		goto out;
+	/*if (addr->svrr_family != AF_VRR)
+		goto out;*/
 
-	/* vrr->src = get_vrr_id(); */
-	vrr->dest_addr = addr->svrr_addr;
+	/* vrr->src = get_vrr_id();
+	vrr->dest_addr = addr->svrr_addr;*/
 
  out:
 	return err;

@@ -84,7 +84,7 @@ int rt_remove_nexts(u_int route_hop_to_remove)
 /*
  * Physical set functions
  */
-int pset_add(u_int node)
+int pset_add(u_int node, u_int status)
 {
 	return 0;
 }
@@ -109,11 +109,11 @@ int vset_add(u_int node)
 {
 	return 0;
 }
-int vset_remove(u_int node);
+int vset_remove(u_int node)
 {
 	return 0;
 }
-u_int * vset_get_all();
+u_int * vset_get_all()
 {
 	return vset;
 }
