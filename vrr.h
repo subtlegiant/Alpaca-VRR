@@ -2,6 +2,7 @@
 #define _VRR_H
 
 #include <linux/skbuff.h>
+#include <linux/socket.h>
 #include <linux/netdevice.h>
 
 /* PATCH: include/linux/socket.h */
@@ -45,13 +46,26 @@
 struct pset_state {
 	int l_active[VRR_PSET_SIZE];
 	int l_not_active[VRR_PSET_SIZE];
-	int pending[VRR_PSET_SIZE];]
+	int pending[VRR_PSET_SIZE];
 
 	int la_size;
 	int lna_size;
 	int p_size;
 	int total_size;
 };
+
+/* Structure describing a VRR socket address. */
+#define __SOCK_SIZE__	16      /* sizeof(struct sockaddr) */
+struct sockaddr_vrr {
+	sa_family_t	svrr_family; /* AF_VRR */
+	unsigned long	svrr_addr;   /* VRR identifier */
+        
+        /* Pad to sizeof(struct sockaddr). */
+        unsigned char	__pad[__SOCK_SIZE__ - 
+                              sizeof(sa_family_t) -
+                              sizeof(unsigned long)];
+};
+#define svrr_zero	__pad
 
 struct vrr_node {
 	u_int id; //128 bit identifier to match those of IP
@@ -89,6 +103,12 @@ struct vrr_header {
         uint8_t dest_mac[6];
 };
 
+static inline struct vrr_header *vrr_hdr(const struct sk_buff *skb)
+{
+        /* skb_network_header returns skb->head + skb->network_header */
+        return (struct vrr_header *)skb_network_header(skb);
+}
+
 //Struct for use in VRR Routing Table
 typedef struct routing_table_entry {
 	u_int ea;		//endpoint A
@@ -118,9 +138,13 @@ static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
  * Functions provided by vrr_input.c
  */
 
-extern int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
-		   struct packet_type *pt, struct net_device *orig_dev);
+int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
+            struct packet_type *pt, struct net_device *orig_dev);
 
+/* Static does not work that way. Any function that you need to call
+ * from another .c file is by definition non-static. If you need to
+ * prototype static function members, prototype them in your .c
+ * file. -tad */
 static int get_pkt_type(struct sk_buff *skb);
 static int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 static u_int get_vrr_id(void);
@@ -130,7 +154,5 @@ static int send_hpkt(void);
 static int send_setup_req(void);
 static int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 static int vrr_output(struct sk_buff *skb, int type);
-
-
 
 #endif	/* _VRR_H */

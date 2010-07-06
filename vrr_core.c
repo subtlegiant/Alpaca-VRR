@@ -18,14 +18,13 @@ static struct pset_state *pstate;
 
 static int vrr_node_init()
 {
-
-	vrr = (struct vrr_node*)kmalloc(sizeof(vrr_node), GFP_KERNEL);
 	/*initialize all node
 	 * members.
 	 */
 	int rand_id = 0;
 	int err = 0;
 	//pset_state.lactive[0] = 1;
+	vrr = (struct vrr_node*)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
 
 	err = set_vrr_id(rand_id);
 
@@ -37,16 +36,18 @@ static int set_pset_state_size()
 	pstate->la_size = (sizeof(pstate->l_active)/sizeof(int));
 	pstate->lna_size = (sizeof(pstate->l_not_active)/sizeof(int));
 	pstate->p_size = (sizeof(pstate->pending)/sizeof(int));
-	pstate->total_size = pstate->la_size + pstate->lna_size + pstate->psize;
+	pstate->total_size = pstate->la_size + pstate->lna_size + pstate->p_size;
+        return 0;
 }
 
 static int send_setup_msg()
 {
+    return 0;
 }
 
 /* take a packet node and build header. Add header to sk_buff for
  * transport to layer two.
- * /*the header consists of:
+ * the header consists of:
 	 * Version\Unused: 8 bits reserved for future
 	 * Packet Type: 8 bits
 	 *      0: regular packet with payload/data
@@ -69,9 +70,10 @@ static int send_setup_msg()
 static int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 {
 	struct vrr_header *header;
-	header = (struct vrr_header*)kmalloc(sizeof(vrr_header), GFP_KERNEL);
 	int mac_addr_len = 6;
 	int i;
+
+	header = (struct vrr_header*)kmalloc(sizeof(struct vrr_header), GFP_KERNEL);
 
 	header->vrr_version = vrr->version;
 	header->pkt_type = vpkt->pkt_type;
@@ -85,13 +87,14 @@ static int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	//determine what kind of header
 	if(vpkt->pkt_type == VRR_HELLO) {
 
-	    for(i=0; i<mac_addr_len, ++i){
-		    header->dest_mac[i] = 0xff;s
+	    for (i = 0; i < mac_addr_len; ++i) {
+		    header->dest_mac[i] = 0xff;
 	    }
 	}
 
 	//add header
-	memcpy(skb_push(skb, sizeof(vrr_header), header, sizeof(vrr_header));
+        /* This doesn't work. -tad */
+	/* memcpy(skb_push(skb, sizeof(struct vrr_header), header), sizeof(struct vrr_header); */
 	kfree(header);
 
 	return 1;
@@ -153,26 +156,27 @@ static int send_hpkt()
 {
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
-	hpkt = (struct vrr_packet*)kmalloc(sizeof(vrr_packet), GFP_KERNEL)
+
 	int data_size = pstate->total_size;
 	int i;
 	int err = 0;
 
 	int hpkt_data[data_size + 3];
 
-	for(i=0; i<pstate->la_size, ++i) {
+	hpkt = (struct vrr_packet*)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
+	for(i=0; i<pstate->la_size; ++i) {
             hpkt_data[i] = pstate->l_active[i];
 	}
 	//add delimiter
 	hpkt_data[i + 1] = 0;
 
-	for(i=0; i<pstate->lna_size, ++i) {
+	for(i=0; i<pstate->lna_size; ++i) {
 	    hpkt_data[i] = pstate->l_not_active[i];
 	}
 	//add delimiter
 	hpkt_data[i + 1] = 0;
 
-	for(i=0; i<pstate->p_size, ++i) {
+	for(i=0; i<pstate->p_size; ++i) {
 	    hpkt_data[i] = pstate->pending[i];
 	}
 	//add delimiter
@@ -187,9 +191,10 @@ static int send_hpkt()
 	 * packet. Pass to vrr_output
 	 */
 
-	skb = vrr_skb_alloc(buf_size, GFP_KERNEL);
+        /* Doesn't work. -tad */
+	/* skb = vrr_skb_alloc(buf_size, GFP_KERNEL); */
 	if (skb) {
-		memcpy(skb_put(skb, sizeof(hpkt_data)), hpkt_data, sizeof(hpkt_data));
+		/* memcpy(skb_put(skb, sizeof(hpkt_data)), hpkt_data, sizeof(hpkt_data)); */
 	}
 
 	else
@@ -197,8 +202,8 @@ static int send_hpkt()
 
 
 	hpkt->src = vrr->id;
-	hpkt->dest = 0 ; //broadcast hello packet
-	hpkt->payload = null; //already in sk_buff
+	hpkt->dst = 0 ; //broadcast hello packet
+	hpkt->payload = NULL; //already in sk_buff
 	hpkt->pkt_type = VRR_HELLO;
 
 	build_header(skb, hpkt);
@@ -220,7 +225,7 @@ static int send_setup_req()
 	build_header(skb, set_req);
 
 	//vrr_output(skb);
-
+        return 0;
 }
 
 //TODO vrr exit node: release vrr node memory

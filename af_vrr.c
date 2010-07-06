@@ -43,13 +43,14 @@ static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
 	}
 
 	err = -EINVAL;
-	/*if (addr == NULL || addrlen != sizeof(sockaddr_vrr))
+	if (addr == NULL || addrlen != sizeof(struct sockaddr_vrr))
 		goto out;
-	/*if (addr->svrr_family != AF_VRR)
-		goto out;*/
+	if (addr->svrr_family != AF_VRR)
+		goto out;
 
-	/* vrr->src = get_vrr_id();
-	vrr->dest_addr = addr->svrr_addr;*/
+        err = 0;
+	vrr->src_addr = get_vrr_id();
+	vrr->dest_addr = addr->svrr_addr;
 
  out:
 	return err;
@@ -71,25 +72,51 @@ static int vrr_connect(struct socket *sock, struct sockaddr *uaddr,
 }
 
 static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
-		       struct msghdr *msg, size_t size, int flags)
+		       struct msghdr *msg, size_t len, int flags)
 {
 	struct sock *sk = sock->sk;
 	struct vrr_sock *vrr = vrr_sk(sk);
+        struct sockaddr_vrr *svrr = (struct sockaddr_vrr *)msg->msg_name;
 	struct sk_buff *skb;
-	int rc;
+        size_t copied = 0;
+        int err = -EOPNOTSUPP;
 
-	VRR_DBG("sock %p sk %p len %zu", sock, sk, size);
+	VRR_DBG("sock %p sk %p len %zu", sock, sk, len);
 
+        /* Pull skb from sk->sk_receive_queue */
 	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
-				flags & MSG_DONTWAIT, &rc);
+				flags & MSG_DONTWAIT, &err);
 	if (!skb)
 		goto out;
 
+        copied = skb->len;
+        if (len < copied) {
+                msg->msg_flags |= MSG_TRUNC;
+                copied = len;
+        }
+
+        err = skb_copy_datagram_iovec(skb, 0, msg->msg_iov, copied);
+        if (err)
+                goto done;
+
+        sock_recv_ts_and_drops(msg, sk, skb);
+
+        if (svrr) {
+                svrr->svrr_family = AF_VRR;
+                svrr->svrr_addr = vrr_hdr(skb)->dest_id;
+                memset(&svrr->svrr_zero, 0, sizeof(svrr->svrr_zero));
+        }
+        if (flags & MSG_TRUNC)
+                copied = skb->len;
+done:
+        skb_free_datagram(sk, skb);
  out:
-	return rc;
+        if (err)
+                return err;
+	return copied;
 }
 
-static void vrr_destroy_sock(struct sock *sk)
+void vrr_destroy_sock(struct sock *sk)
 {
 	if (sk->sk_socket) {
 		if (sk->sk_socket->state != SS_UNCONNECTED)
@@ -130,6 +157,14 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	/* vrr_ouput(skb); */
 	VRR_DBG("sock %p, sk %p", sock, sk);
 	return err;
+}
+
+static void vrr_sock_destruct(struct sock *sk)
+{
+        __skb_queue_purge(&sk->sk_receive_queue);
+        __skb_queue_purge(&sk->sk_error_queue);
+
+        sk_mem_reclaim(sk);
 }
 
 struct proto vrr_proto = {
@@ -176,7 +211,6 @@ static int vrr_create(struct net *net, struct socket *sock,
 		goto out;
 
 	err = 0;
-
 	vrr = vrr_sk(sk);
 
 	if (sock) {
@@ -184,10 +218,11 @@ static int vrr_create(struct net *net, struct socket *sock,
 	}
 	sock_init_data(sock, sk);
 
-	/* sk->sk_destruct      = vrr_destruct; */
-	sk->sk_family = PF_VRR;
-	sk->sk_protocol = protocol;
-	sk->sk_allocation = GFP_KERNEL;
+	sk->sk_destruct 	= vrr_sock_destruct;
+	sk->sk_family 		= PF_VRR;
+	sk->sk_protocol 	= protocol;
+	sk->sk_allocation	= GFP_KERNEL;
+
 	VRR_INFO("End vrr_create");
  out:
 	return err;
