@@ -5,12 +5,13 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 
 */
 
+//#include <stdlib.h>
 #include <linux/rbtree.h>
 #include <linux/list.h>
 #include "vrr.h"
 #include "vrr_data.h"
 
-static struct rb_root rt_root;
+typedef unsigned char mac_addr[MAC_ADDR_LEN];
 
 static u_int vset[VRR_VSET_SIZE];
 
@@ -20,9 +21,28 @@ struct rt_node {
 	rt_entry routes;
 };
 
+typedef struct pset_data {
+	u_int node;
+	u_int status;
+	mac_addr mac;
+}pset_data_t;
+
+typedef struct pset_list {
+	struct list_head list;
+	pset_data_t * data;
+} pset_list_t;
+
+
+static struct rb_root rt_root;
+
+
+static int pset_size = 0;
+static pset_list_t pset;
+
 void vrr_data_init()
 {
 	rt_root = RB_ROOT;	//Initialize the routing table Tree
+	INIT_LIST_HEAD(&pset.list);
 }
 
 
@@ -76,23 +96,33 @@ int rt_remove_nexts(u_int route_hop_to_remove)
 
 
 
-
-
-
-
-
 /*
  * Physical set functions
  */
-int pset_add(u_int node, u_int status)
+int pset_add(u_int node, u_int status, unsigned char mac[MAC_ADDR_LEN])
 {
-	return 0;
+	pset_list_t * tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_KERNEL);
+
+	tmp->data = (pset_data_t *) kmalloc(sizeof(pset_data_t), GFP_KERNEL);
+	tmp->data->node = node;
+        tmp->data->status = status;
+        memcpy(tmp->data->mac, mac, sizeof(mac_addr));
+
+	list_add(&(tmp->list), &(pset.list));
+
+	pset_size += 1;
+
+	return 1;
 }
 int pset_remove(u_int node)
 {
 	return 0;
 }
 int pset_get_status(u_int node)
+{
+	return 0;
+}
+int pset_update_status(u_int node, u_int newstatus)
 {
 	return 0;
 }

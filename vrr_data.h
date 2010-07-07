@@ -3,6 +3,9 @@
 #define PSET_FAILED	3
 #define PSET_UNKWOWN	4
 
+#define MAC_ADDR_LEN 6
+
+
 /*
  * Routes, Pset, and Vset initialization
  * vrr_data_init : Call once before using any of the other functions
@@ -26,7 +29,7 @@ int rt_remove_nexts(u_int route_hop_to_remove);
  * pset_get_status : Gets current status of physical node.  Returns status
  * pset_update_status : Updates node with a new status.
  */
-int pset_add(u_int node, u_int status);
+int pset_add(u_int node, u_int status, unsigned char mac_addr[MAC_ADDR_LEN]);
 int pset_remove(u_int node);
 int pset_get_status(u_int node);
 int pset_update_status(u_int node, u_int new_status);
@@ -39,4 +42,4 @@ int pset_update_status(u_int node, u_int new_status);
  */
 int vset_add(u_int node);
 int vset_remove(u_int node);
-u_int * vset_get_all();
+u_int * vset_get_all(void);
