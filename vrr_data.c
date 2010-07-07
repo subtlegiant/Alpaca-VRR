@@ -21,15 +21,11 @@ struct rt_node {
 	rt_entry routes;
 };
 
-typedef struct pset_data {
+typedef struct pset_list {
+	struct list_head list;
 	u_int node;
 	u_int status;
 	mac_addr mac;
-}pset_data_t;
-
-typedef struct pset_list {
-	struct list_head list;
-	pset_data_t * data;
 } pset_list_t;
 
 
@@ -101,12 +97,22 @@ int rt_remove_nexts(u_int route_hop_to_remove)
  */
 int pset_add(u_int node, u_int status, unsigned char mac[MAC_ADDR_LEN])
 {
-	pset_list_t * tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_KERNEL);
+	pset_list_t * tmp;
+	struct list_head * pos;
 
-	tmp->data = (pset_data_t *) kmalloc(sizeof(pset_data_t), GFP_KERNEL);
-	tmp->data->node = node;
-        tmp->data->status = status;
-        memcpy(tmp->data->mac, mac, sizeof(mac_addr));
+	list_for_each(pos, &pset.list){	//check to see if node already exists
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			return 0;
+		}
+	}
+
+
+	tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_KERNEL);
+
+	tmp->node = node;
+        tmp->status = status;
+        memcpy(tmp->mac, mac, sizeof(mac_addr));
 
 	list_add(&(tmp->list), &(pset.list));
 
@@ -116,14 +122,44 @@ int pset_add(u_int node, u_int status, unsigned char mac[MAC_ADDR_LEN])
 }
 int pset_remove(u_int node)
 {
+	pset_list_t * tmp;
+	struct list_head * pos, *q;
+
+	list_for_each_safe(pos, q, &pset.list) {
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			list_del(pos);
+			kfree(tmp);
+		}
+	}
+
 	return 0;
 }
-int pset_get_status(u_int node)
+u_int pset_get_status(u_int node)
 {
+	pset_list_t * tmp;
+	struct list_head * pos;
+
+	list_for_each(pos, &pset.list){	
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			return tmp->status;
+		}
+	}
 	return 0;
 }
 int pset_update_status(u_int node, u_int newstatus)
 {
+	pset_list_t * tmp;
+	struct list_head * pos;
+
+	list_for_each(pos, &pset.list){	
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			tmp->status = newstatus;
+			return 1;
+		}
+	}
 	return 0;
 }
 
