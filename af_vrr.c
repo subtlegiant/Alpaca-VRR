@@ -144,17 +144,31 @@ static int vrr_release(struct socket *sock)
 static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 		struct msghdr *msg, size_t len)
 {
+	int addr_len = msg->msg_namelen;
+	int err = 0;
+	int flags = msg->msg_flags;
+	size_t sent = 0;
+	struct sk_buff *skb = NULL;
 	struct sock *sk = sock->sk;
-	struct sk_buff *skb;
-	int sent = 0;
-	int err = -ENOSYS;
+	struct sockaddr_vrr *addr = (struct sockaddr_vrr *)msg->msg_name;
+	struct vrr_sock *vrr = vrr_sk(sk);
 
 	if (sk->sk_shutdown & SEND_SHUTDOWN) {
 		return -EPIPE;
 	}
 
+	/* Allocate an skb for sending */
+	/* skb = sock_alloc_send_skb(sk, len, flags, errcode); */
+
+	/* Build the vrr header */
+	/* build_header(sk, addr); */
+
+	/* Copy data from userspace */
+	/* memcpy_fromiovec(skb_put(skb, len), msg->msg_iov, len); */
+	
 	/* Send packet */
 	/* vrr_ouput(skb); */
+
 	VRR_DBG("sock %p, sk %p", sock, sk);
 	return err;
 }
