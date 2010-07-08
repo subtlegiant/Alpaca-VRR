@@ -24,12 +24,15 @@ int rt_remove_nexts(u_int route_hop_to_remove);
 
 
 /* Functions for physical set of nodes, and also their current state (linked, active or pending)
- * pset_add : Add a node to the physical set.  Returns 1 on success, 0 on failure
- * pset_remove : Remove a node from the physical set.  Returns 1 on success, 0 on failure
+ * pset_add : Add a node to the physical set.  Returns 1 on success,
+ *	0 on failure
+ * pset_remove : Remove a node from the physical set.  Returns 1 on success,
+ *	0 on failure
  * pset_get_status : Gets current status of physical node.  Returns status
+ * pset_get_mac: Gets current status of physical node.  Uses the passed pointer
+ *	to mac for the data.
  * pset_update_status : Updates node with a new status.
  */
-//int pset_add(u_int node, u_int status, unsigned char mac_addr[MAC_ADDR_LEN]);
 int pset_add(u_int node, u_int status, mac_addr mac);
 int pset_remove(u_int node);
 u_int pset_get_status(u_int node);

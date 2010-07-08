@@ -2,7 +2,6 @@
 rbtree to use: http://lwn.net/Articles/184495/
 
 and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
-
 */
 
 #include <linux/rbtree.h>
@@ -10,14 +9,16 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 #include "vrr.h"
 #include "vrr_data.h"
 
-static u_int vset[VRR_VSET_SIZE];
-
+//Routing Table Setup
 struct rt_node {
 	struct rb_node node;
 	u_int route;
 	rt_entry routes;
 };
 
+static struct rb_root rt_root;
+
+//Physical Set Setup
 typedef struct pset_list {
 	struct list_head list;
 	u_int node;
@@ -25,17 +26,26 @@ typedef struct pset_list {
 	mac_addr mac;
 } pset_list_t;
 
-
-static struct rb_root rt_root;
-
-
 static int pset_size = 0;
 static pset_list_t pset;
+
+//Virtual Set Setup
+typedef struct vset_list {
+	struct list_head list;
+	u_int node;
+} vset_list_t;
+
+static int vset_size = 0;
+static vset_list_t vset;
+//static u_int vset[VRR_VSET_SIZE];
+
+
 
 void vrr_data_init()
 {
 	rt_root = RB_ROOT;	//Initialize the routing table Tree
 	INIT_LIST_HEAD(&pset.list);
+	INIT_LIST_HEAD(&vset.list);
 }
 
 /*
@@ -175,14 +185,15 @@ void pset_get_mac(u_int node, mac_addr * mac)
 
 
 
-
-
-
 /*
  * Virtual set functions
  */
 int vset_add(u_int node)
 {
+	//i = x - y
+	//j = y - x
+	//diff = min(i,j)
+	vset_size += 0;
 	return 0;
 }
 
@@ -193,5 +204,5 @@ int vset_remove(u_int node)
 
 u_int *vset_get_all()
 {
-	return vset;
+	return NULL;
 }
