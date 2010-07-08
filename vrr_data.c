@@ -84,16 +84,6 @@ int rt_remove_nexts(u_int route_hop_to_remove)
 	return 0;
 }
 
-<<<<<<< HEAD
-/*
- * Physical set functions
- */
-int pset_add(u_int node, u_int status)
-=======
-
-
-
-
 
 /*
  * Physical set functions
@@ -123,8 +113,8 @@ int pset_add(u_int node, u_int status, unsigned char mac[MAC_ADDR_LEN])
 
 	return 1;
 }
+
 int pset_remove(u_int node)
->>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900
 {
 	pset_list_t * tmp;
 	struct list_head * pos, *q;
@@ -139,12 +129,8 @@ int pset_remove(u_int node)
 
 	return 0;
 }
-<<<<<<< HEAD
 
-int pset_remove(u_int node)
-=======
 u_int pset_get_status(u_int node)
->>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
@@ -157,12 +143,8 @@ u_int pset_get_status(u_int node)
 	}
 	return 0;
 }
-<<<<<<< HEAD
 
-int pset_get_status(u_int node)
-=======
 int pset_update_status(u_int node, u_int newstatus)
->>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
