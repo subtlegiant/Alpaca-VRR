@@ -156,7 +156,7 @@ int pset_update_status(u_int node, u_int newstatus)
 	return 0;
 }
 
-mac_addr * pset_get_mac(u_int node)
+void pset_get_mac(u_int node, mac_addr * mac)
 {
         pset_list_t * tmp;
         struct list_head * pos;
@@ -164,10 +164,9 @@ mac_addr * pset_get_mac(u_int node)
         list_for_each(pos, &pset.list){
                 tmp= list_entry(pos, pset_list_t, list);
                 if (tmp->node == node) {
-                        return &tmp->mac;
+        		memcpy(mac, tmp->mac, sizeof(mac_addr));
                 }
         }
-        return 0;
 }
 
 

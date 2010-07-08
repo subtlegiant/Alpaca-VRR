@@ -33,7 +33,7 @@ int rt_remove_nexts(u_int route_hop_to_remove);
 int pset_add(u_int node, u_int status, mac_addr mac);
 int pset_remove(u_int node);
 u_int pset_get_status(u_int node);
-mac_addr pset_get_mac(u_int node);
+void pset_get_mac(u_int node, mac_addr * mac);
 int pset_update_status(u_int node, u_int new_status);
 
 
