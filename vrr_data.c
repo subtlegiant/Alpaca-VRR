@@ -5,13 +5,10 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 
 */
 
-//#include <stdlib.h>
 #include <linux/rbtree.h>
 #include <linux/list.h>
 #include "vrr.h"
 #include "vrr_data.h"
-
-typedef unsigned char mac_addr[MAC_ADDR_LEN];
 
 static u_int vset[VRR_VSET_SIZE];
 
@@ -158,6 +155,29 @@ int pset_update_status(u_int node, u_int newstatus)
 	}
 	return 0;
 }
+
+mac_addr * pset_get_mac(u_int node)
+{
+        pset_list_t * tmp;
+        struct list_head * pos;
+
+        list_for_each(pos, &pset.list){
+                tmp= list_entry(pos, pset_list_t, list);
+                if (tmp->node == node) {
+                        return &tmp->mac;
+                }
+        }
+        return 0;
+}
+
+
+
+
+
+
+
+
+
 
 /*
  * Virtual set functions
