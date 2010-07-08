@@ -45,7 +45,7 @@
 struct pset_state {
 	int l_active[VRR_PSET_SIZE];
 	int l_not_active[VRR_PSET_SIZE];
-	int pending[VRR_PSET_SIZE];]
+	int pending[VRR_PSET_SIZE];
 
 	int la_size;
 	int lna_size;
@@ -86,7 +86,7 @@ struct vrr_header {
         u16 h_csum;
         u_int src_id;
         u_int dest_id;
-        uint8_t dest_mac[6];
+        u8 dest_mac[6];
 };
 
 //Struct for use in VRR Routing Table
@@ -121,15 +121,15 @@ static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 extern int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 		   struct packet_type *pt, struct net_device *orig_dev);
 
-static int get_pkt_type(struct sk_buff *skb);
-static int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
-static u_int get_vrr_id(void);
-static int vrr_node_init(void);
-static int set_pset_state_size(void);
-static int send_hpkt(void);
-static int send_setup_req(void);
-static int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
-static int vrr_output(struct sk_buff *skb, int type);
+int get_pkt_type(struct sk_buff *skb);
+int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
+u_int get_vrr_id(void);
+int vrr_node_init(void);
+int pset_state_init(void);
+int send_hpkt(void);
+int send_setup_req(void);
+int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
+int vrr_output(struct sk_buff *skb, int type);
 
 
 
