@@ -141,7 +141,6 @@ static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
             struct packet_type *pt, struct net_device *orig_dev);
 
-<<<<<<< HEAD
 int get_pkt_type(struct sk_buff *skb);
 int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 u_int get_vrr_id(void);
@@ -149,22 +148,8 @@ int vrr_node_init(void);
 int pset_state_init(void);
 int send_hpkt(void);
 int send_setup_req(void);
+int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, int type);
-=======
-/* Static does not work that way. Any function that you need to call
- * from another .c file is by definition non-static. If you need to
- * prototype static function members, prototype them in your .c
- * file. -tad */
-static int get_pkt_type(struct sk_buff *skb);
-static int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
-static u_int get_vrr_id(void);
-static int vrr_node_init(void);
-static int set_pset_state_size(void);
-static int send_hpkt(void);
-static int send_setup_req(void);
-static int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
-static int vrr_output(struct sk_buff *skb, int type);
->>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900
 
 #endif	/* _VRR_H */

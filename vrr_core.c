@@ -53,30 +53,29 @@ int send_setup_msg()
 /* take a packet node and build header. Add header to sk_buff for
  * transport to layer two.
  * the header consists of:
-	 * Version\Unused: 8 bits reserved for future
-	 * Packet Type: 8 bits
-	 *      0: regular packet with payload/data
-	 *      1: Hello message
-	 *      2: Setup request
-	 *      3: Setup
-	 *      4: Setup fail
-	 *      5: Teardown
-	 *
-	 * Protocol type: vrr id, 8 bits
-	 * Total length: length of the data 16  bits
-	 * Open Space: 8 bits reserved for future use
-	 * Header checksum: 16bits
-	 * Source id: 32 bits
-	 * Destination id: 32 bits
-	 * Destination Mac: 48 bits
-	 *
+ * Version\Unused: 8 bits reserved for future
+ * Packet Type: 8 bits
+ *      0: regular packet with payload/data
+ *      1: Hello message
+ *      2: Setup request
+ *      3: Setup
+ *      4: Setup fail
+ *      5: Teardown
+ *
+ * Protocol type: vrr id, 8 bits
+ * Total length: length of the data 16  bits
+ * Open Space: 8 bits reserved for future use
+ * Header checksum: 16bits
+ * Source id: 32 bits
+ * Destination id: 32 bits
+ * Destination Mac: 48 bits
+ *
 */
 
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 {
 	struct vrr_header *header;
 	int mac_addr_len, i;
-	int i;
 
 	header =
 	    (struct vrr_header *)kmalloc(sizeof(struct vrr_header), GFP_KERNEL);
