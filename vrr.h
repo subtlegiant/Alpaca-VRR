@@ -119,6 +119,10 @@ typedef struct routing_table_entry {
 	int path_id;		//Path ID
 } rt_entry;
 
+//Mac address
+#define MAC_ADDR_LEN 6
+typedef unsigned char mac_addr[MAC_ADDR_LEN];
+
 
 static inline struct vrr_sock *vrr_sk(const struct sock *sk)
 {
