@@ -4,6 +4,7 @@
 #include <linux/skbuff.h>
 #include <linux/socket.h>
 #include <linux/netdevice.h>
+#include <linux/hrtimer.h>
 
 /* PATCH: include/linux/socket.h */
 #define AF_VRR 27
@@ -118,11 +119,6 @@ typedef struct routing_table_entry {
 	int path_id;		//Path ID
 } rt_entry;
 
-//Mac address
-#define MAC_ADDR_LEN 6
-typedef unsigned char mac_addr[MAC_ADDR_LEN];
-
-
 
 static inline struct vrr_sock *vrr_sk(const struct sock *sk)
 {
@@ -151,7 +147,7 @@ int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 u_int get_vrr_id(void);
 int vrr_node_init(void);
 int pset_state_init(void);
-int send_hpkt(void);
+enum hrtimer_restart send_hpkt(void);
 int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);

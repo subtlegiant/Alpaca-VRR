@@ -7,13 +7,18 @@
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <net/sock.h>
+#include <linux/hrtimer.h>
+#include <linux/ktime.h>
 
 #include "vrr.h"
 #include "vrr_data.h"
 
+#define MS_TO_NS(x)	(x * 1E6L)
+
 /* Defined in af_vrr.c */
 extern const struct net_proto_family vrr_family_ops;
 extern struct proto vrr_proto;
+static struct hrtimer hr_timer;
 
 static struct packet_type vrr_packet_type __read_mostly = {
 	.type = cpu_to_be16(ETH_P_VRR),
@@ -57,6 +62,15 @@ static int __init vrr_init(void)
 
 	/*if(!(node = kzalloc(sizeof(struct vrr_node), GFP_KERNEL)));
 	   return -ENOMEM; */
+
+	//start hello packet timer
+	ktime_t ktime;
+        unsigned long delay = 1000L;
+
+	ktime = ktime_set(0, MS_TO_NS(delay));
+	hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+        hr_timer.function = &send_hpkt;
+	hrtimer_start(&hr_timer, ktime, HRTIMER_MODE_REL); 
 
 	VRR_INFO("Begin init");
 

@@ -155,7 +155,7 @@ u_int get_vrr_id()
 
 /*build and send a hello packet */
 
-int send_hpkt()
+enum hrtimer_restart send_hpkt()
 {
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
