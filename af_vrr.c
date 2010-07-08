@@ -151,25 +151,59 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	struct sk_buff *skb = NULL;
 	struct sock *sk = sock->sk;
 	struct sockaddr_vrr *addr = (struct sockaddr_vrr *)msg->msg_name;
+	struct vrr_packet *pkt = NULL;
 	struct vrr_sock *vrr = vrr_sk(sk);
 
 	if (sk->sk_shutdown & SEND_SHUTDOWN) {
 		return -EPIPE;
 	}
 
+	err = -ENOBUFS;
+	pkt = (struct vrr_packet *) kmalloc(sizeof(struct vrr_packet), 
+					    GFP_KERNEL);
+	if (!pkt)
+		goto out_err;
+
+	pkt->src = get_vrr_id();
+	pkt->dst = addr->svrr_addr;
+	pkt->pkt_type = VRR_DATA;
+
+	lock_sock(sk);
+
 	/* Allocate an skb for sending */
-	/* skb = sock_alloc_send_skb(sk, len, flags, errcode); */
+	skb = sock_alloc_send_skb(sk, len + VRR_MAX_HEADER, 
+				  flags & MSG_DONTWAIT, &err);
+	if (err)
+		goto out;
+
+	if (!skb)
+		goto out_err;
+
+	skb_reserve(skb, VRR_MAX_HEADER);
 
 	/* Build the vrr header */
-	/* build_header(sk, addr); */
+	build_header(skb, pkt);
 
 	/* Copy data from userspace */
-	/* memcpy_fromiovec(skb_put(skb, len), msg->msg_iov, len); */
+	if (memcpy_fromiovec(skb_put(skb, len), msg->msg_iov, len)) {
+		err = -EFAULT;
+		goto out;
+	}
+
+	sent += len;
 
 	/* Send packet */
 	/* vrr_ouput(skb); */
 
 	VRR_DBG("sock %p, sk %p", sock, sk);
+
+out:
+	kfree_skb(skb);
+	release_sock(sk);
+	return sent ? sent : err;
+
+out_err:
+	release_sock(sk);
 	return err;
 }
 

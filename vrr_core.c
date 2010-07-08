@@ -100,7 +100,7 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	       sizeof(struct vrr_header));
 	kfree(header);
 
-	return 1;
+	return 0;
 }
 
 int rmv_header(struct sk_buff *skb)
