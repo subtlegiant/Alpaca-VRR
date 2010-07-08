@@ -1,2 +1,7 @@
 *.o
+<<<<<<< HEAD
 .nfs*
+=======
+*.cmd
+*.ko
+>>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900

@@ -219,7 +219,7 @@ int send_setup_req()
 	struct vrr_packet *set_req;
 	set_req->pkt_type = VRR_SETUP;
 	build_header(skb, set_req);
-	vrr_output(skb, VRR_SETUP, REQ);
+	vrr_output(skb, VRR_SETUP_REQ);
 
 }
 

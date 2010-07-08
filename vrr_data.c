@@ -5,12 +5,13 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 
 */
 
+//#include <stdlib.h>
 #include <linux/rbtree.h>
 #include <linux/list.h>
 #include "vrr.h"
 #include "vrr_data.h"
 
-static struct rb_root rt_root;
+typedef unsigned char mac_addr[MAC_ADDR_LEN];
 
 static u_int vset[VRR_VSET_SIZE];
 
@@ -20,9 +21,24 @@ struct rt_node {
 	rt_entry routes;
 };
 
+typedef struct pset_list {
+	struct list_head list;
+	u_int node;
+	u_int status;
+	mac_addr mac;
+} pset_list_t;
+
+
+static struct rb_root rt_root;
+
+
+static int pset_size = 0;
+static pset_list_t pset;
+
 void vrr_data_init()
 {
 	rt_root = RB_ROOT;	//Initialize the routing table Tree
+	INIT_LIST_HEAD(&pset.list);
 }
 
 /*
@@ -68,21 +84,96 @@ int rt_remove_nexts(u_int route_hop_to_remove)
 	return 0;
 }
 
+<<<<<<< HEAD
 /*
  * Physical set functions
  */
 int pset_add(u_int node, u_int status)
+=======
+
+
+
+
+
+/*
+ * Physical set functions
+ */
+int pset_add(u_int node, u_int status, unsigned char mac[MAC_ADDR_LEN])
 {
+	pset_list_t * tmp;
+	struct list_head * pos;
+
+	list_for_each(pos, &pset.list){	//check to see if node already exists
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			return 0;
+		}
+	}
+
+
+	tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_KERNEL);
+
+	tmp->node = node;
+        tmp->status = status;
+        memcpy(tmp->mac, mac, sizeof(mac_addr));
+
+	list_add(&(tmp->list), &(pset.list));
+
+	pset_size += 1;
+
+	return 1;
+}
+int pset_remove(u_int node)
+>>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900
+{
+	pset_list_t * tmp;
+	struct list_head * pos, *q;
+
+	list_for_each_safe(pos, q, &pset.list) {
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			list_del(pos);
+			kfree(tmp);
+		}
+	}
+
 	return 0;
 }
+<<<<<<< HEAD
 
 int pset_remove(u_int node)
+=======
+u_int pset_get_status(u_int node)
+>>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900
 {
+	pset_list_t * tmp;
+	struct list_head * pos;
+
+	list_for_each(pos, &pset.list){	
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			return tmp->status;
+		}
+	}
 	return 0;
 }
+<<<<<<< HEAD
 
 int pset_get_status(u_int node)
+=======
+int pset_update_status(u_int node, u_int newstatus)
+>>>>>>> f6d5f28eae4dcbd109d94a283d3f8999fee6d900
 {
+	pset_list_t * tmp;
+	struct list_head * pos;
+
+	list_for_each(pos, &pset.list){	
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			tmp->status = newstatus;
+			return 1;
+		}
+	}
 	return 0;
 }
 
