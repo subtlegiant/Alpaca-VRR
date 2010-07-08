@@ -23,9 +23,8 @@ int vrr_node_init()
 	 * members.
 	 */
 	u_int rand_id;
-        int err;
-	
-        
+	int err;
+
 	//pset_state.lactive[0] = 1;
 
 	err = set_vrr_id(rand_id);
@@ -38,11 +37,13 @@ int vrr_node_init()
  */
 int pset_state_init()
 {
-	pstate = (struct pset_state*)kmalloc(sizeof(struct pset_state), GFP_KERNEL);
+	pstate =
+	    (struct pset_state *)kmalloc(sizeof(struct pset_state), GFP_KERNEL);
 	pstate->la_size = (sizeof(pstate->l_active) / sizeof(int));
 	pstate->lna_size = (sizeof(pstate->l_not_active) / sizeof(int));
 	pstate->p_size = (sizeof(pstate->pending) / sizeof(int));
-	pstate->total_size = pstate->la_size + pstate->lna_size + pstate->p_size;
+	pstate->total_size =
+	    pstate->la_size + pstate->lna_size + pstate->p_size;
 }
 
 int send_setup_msg()
@@ -77,7 +78,8 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	int mac_addr_len, i;
 	int i;
 
-	header = (struct vrr_header *)kmalloc(sizeof(struct vrr_header), GFP_KERNEL);
+	header =
+	    (struct vrr_header *)kmalloc(sizeof(struct vrr_header), GFP_KERNEL);
 	header->vrr_version = vrr->version;
 	header->pkt_type = vpkt->pkt_type;
 	header->protocol = 0;
@@ -95,121 +97,129 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 		}
 	}
 	//add header
-	memcpy(skb_push(skb, sizeof(struct vrr_header)), header, sizeof(struct vrr_header));
+	memcpy(skb_push(skb, sizeof(struct vrr_header)), header,
+	       sizeof(struct vrr_header));
 	kfree(header);
 
 	return 1;
 }
 
-int rmv_header(struct sk_buff *skb) {
-       /*remove the header for handoff to the socket layer
-        * this is only for packets received
-        */
+int rmv_header(struct sk_buff *skb)
+{
+	/*remove the header for handoff to the socket layer
+	 * this is only for packets received
+	 */
 
-       return 1;
+	return 1;
 }
 
 /*Check the header for packet type and destination.
   */
-int get_pkt_type(struct sk_buff *skb) {
-       /*use the offset to access the
-        * packet type, return one of the
-        * pt macros based on type. If data
-        * packet check destination and either
-        * forward or process
-        */
-       return 1;
+int get_pkt_type(struct sk_buff *skb)
+{
+	/*use the offset to access the
+	 * packet type, return one of the
+	 * pt macros based on type. If data
+	 * packet check destination and either
+	 * forward or process
+	 */
+	return 1;
 }
 
-int set_vrr_id(u_int vrr_id) {
-       if (vrr_id == 0) {
-       /*generate random unsigned int
-        *arg is always zero at boot time
-        *but id may be changed/set via
-        *user space/sysfs which would pass
-        *a non-zero arg
-        */
-       }
+int set_vrr_id(u_int vrr_id)
+{
+	if (vrr_id == 0) {
+		/*generate random unsigned int
+		 *arg is always zero at boot time
+		 *but id may be changed/set via
+		 *user space/sysfs which would pass
+		 *a non-zero arg
+		 */
+	}
 
-       else {
-       /*set the id in the vrr node
-        */
-       }
+	else {
+		/*set the id in the vrr node
+		 */
+	}
 
-       return 1;
+	return 1;
 }
 
 /*called by sysfs show function or
  * sockets module
  */
- u_int get_vrr_id() {
+u_int get_vrr_id()
+{
 
-       return vrr->id;
- }
+	return vrr->id;
+}
 
 /*build and send a hello packet */
 
-int send_hpkt() {
-       struct sk_buff *skb;
-       struct vrr_packet *hpkt;
-       int data_size, i, err;
-       hpkt = (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
+int send_hpkt()
+{
+	struct sk_buff *skb;
+	struct vrr_packet *hpkt;
+	int data_size, i, err;
+	hpkt =
+	    (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
 
-       data_size = pstate->total_size;
+	data_size = pstate->total_size;
 
-       int hpkt_data[data_size + 3];
+	int hpkt_data[data_size + 3];
 
-       for (i = 0; i < pstate->la_size; ++i) {
-           hpkt_data[i] = pstate->l_active[i];
-       }
-       //add delimiter
-       hpkt_data[i + 1] = 0;
-       for (i = 0; i < pstate->lna_size; ++i) {
-           hpkt_data[i] = pstate->l_not_active[i];
-       }
-       //add delimiter
-       hpkt_data[i + 1] = 0;
-       for (i = 0; i < pstate->p_size; ++i) {
-           hpkt_data[i] = pstate->pending[i];
-       }
-       //add delimiter
-       hpkt_data[i + 1] = 0;
+	for (i = 0; i < pstate->la_size; ++i) {
+		hpkt_data[i] = pstate->l_active[i];
+	}
+	//add delimiter
+	hpkt_data[i + 1] = 0;
+	for (i = 0; i < pstate->lna_size; ++i) {
+		hpkt_data[i] = pstate->l_not_active[i];
+	}
+	//add delimiter
+	hpkt_data[i + 1] = 0;
+	for (i = 0; i < pstate->p_size; ++i) {
+		hpkt_data[i] = pstate->pending[i];
+	}
+	//add delimiter
+	hpkt_data[i + 1] = 0;
 
-       /* Creates an sk_buff. Stuffs with
-        * vrr related info...
-        * hello packet payload consists of the arrays
-        * in the hpkt structure dilineated by
-        * zeroes. Ends with a call to build
-        * header which wraps the header around
-        * packet. Pass to vrr_output
-        */
-       skb = vrr_skb_alloc(sizeof(hpkt_data), GFP_KERNEL);
-       if (skb) {
-           memcpy(skb_put(skb, sizeof(hpkt_data)), hpkt_data, sizeof(hpkt_data));
-       }
-       else
-	   goto fail;
+	/* Creates an sk_buff. Stuffs with
+	 * vrr related info...
+	 * hello packet payload consists of the arrays
+	 * in the hpkt structure dilineated by
+	 * zeroes. Ends with a call to build
+	 * header which wraps the header around
+	 * packet. Pass to vrr_output
+	 */
+	skb = vrr_skb_alloc(sizeof(hpkt_data), GFP_KERNEL);
+	if (skb) {
+		memcpy(skb_put(skb, sizeof(hpkt_data)), hpkt_data,
+		       sizeof(hpkt_data));
+	} else
+		goto fail;
 
-       hpkt->src = vrr->id;
-       hpkt->dst = 0;	        //broadcast hello packet
-       hpkt->payload = NULL;	//already in sk_buff
-       hpkt->pkt_type = VRR_HELLO;
-       build_header(skb, hpkt);
-       kfree(hpkt);
-       vrr_output(skb, VRR_HELLO);
+	hpkt->src = vrr->id;
+	hpkt->dst = 0;		//broadcast hello packet
+	hpkt->payload = NULL;	//already in sk_buff
+	hpkt->pkt_type = VRR_HELLO;
+	build_header(skb, hpkt);
+	kfree(hpkt);
+	vrr_output(skb, VRR_HELLO);
 
-       return 1;
-fail:
-       return
-           err;
+	return 1;
+ fail:
+	return err;
 }
 
 /*build and send a setup request*/
-int send_setup_req() {
-       struct sk_buff *skb;
-       struct vrr_packet *set_req;
-       set_req->pkt_type = VRR_SETUP; build_header(skb, set_req);
-       vrr_output(skb, VRR_SETUP, REQ);
+int send_setup_req()
+{
+	struct sk_buff *skb;
+	struct vrr_packet *set_req;
+	set_req->pkt_type = VRR_SETUP;
+	build_header(skb, set_req);
+	vrr_output(skb, VRR_SETUP, REQ);
 
 }
 
