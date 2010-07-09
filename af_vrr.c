@@ -182,7 +182,9 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	skb_reserve(skb, VRR_MAX_HEADER);
 
 	/* Build the vrr header */
-	build_header(skb, pkt);
+	err = build_header(skb, pkt);
+	if (err)
+		goto out;
 
 	/* Copy data from userspace */
 	if (memcpy_fromiovec(skb_put(skb, len), msg->msg_iov, len)) {
@@ -193,9 +195,7 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	sent += len;
 
 	/* Send packet */
-	/* vrr_ouput(skb); */
-
-	VRR_DBG("sock %p, sk %p", sock, sk);
+	vrr_ouput(skb, VRR_DATA);
 
  out:
 	kfree_skb(skb);

@@ -78,31 +78,36 @@ int send_setup_msg()
 
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 {
-	struct vrr_header *header;
+	/* This doesn't need to be alloc'd on the heap. */
+	struct vrr_header header;
 	int mac_addr_len, i;
 
-	header =
-	    (struct vrr_header *)kmalloc(sizeof(struct vrr_header), GFP_KERNEL);
-	header->vrr_version = vrr->version;
-	header->pkt_type = vpkt->pkt_type;
-	header->protocol = 0;
-	header->data_len = sizeof(skb->data);
-	header->free = 0;
-	header->h_csum = 0;
-	header->src_id = vrr->id;
-	header->dest_id = vpkt->dst;
+	header.vrr_version = vrr->version;
+	header.pkt_type = vpkt->pkt_type;
+	header.protocol = 0;
+	header.data_len = sizeof(skb->data);
+	header.free = 0;
+	header.h_csum = 0;
+	header.src_id = vrr->id;
+	header.dest_id = vpkt->dst;
 
 	mac_addr_len = 6;
 	//determine what kind of header
 	if (vpkt->pkt_type == VRR_HELLO) {
 		for (i = 0; i < mac_addr_len; ++i) {
-			header->dest_mac[i] = 0xff;
+			header.dest_mac[i] = 0xff;
 		}
 	}
-	//add header
-	memcpy(skb_push(skb, sizeof(struct vrr_header)), header,
-	       sizeof(struct vrr_header));
-	kfree(header);
+
+	/* Advance skb->data, skb_tail by VRR_MAX_HEADER bytes. */
+	/* skb->head should still point at the beginning of the SKB
+	 * data area. */
+	skb_reserve(skb, VRR_MAX_HEADER);
+
+	if (memcpy(skb_push(skb, sizeof(struct vrr_header)), &header,
+		   sizeof(struct vrr_header))) {
+		return -EFAULT;
+	}
 
 	return 0;
 }
@@ -220,7 +225,7 @@ int send_setup_req()
 {
 	struct sk_buff *skb = NULL;
 	struct vrr_packet *set_req = NULL;
-	
+
 	set_req->pkt_type = VRR_SETUP;
 	build_header(skb, set_req);
 	vrr_output(skb, VRR_SETUP_REQ);
