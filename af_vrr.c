@@ -195,7 +195,7 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	sent += len;
 
 	/* Send packet */
-	vrr_ouput(skb, VRR_DATA);
+	vrr_output(skb, vrr_get_node(), VRR_DATA);
 
  out:
 	kfree_skb(skb);

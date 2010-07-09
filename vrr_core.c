@@ -18,12 +18,14 @@ struct pset_state *pstate;
 
 int vrr_node_init()
 {
-	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
 	/*initialize all node
 	 * members.
 	 */
 	u_int rand_id;
 	int err;
+
+	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
+
 	rand_id = 0;
 	vrr->vset_size = 4;
 	vrr->rtable_value = 0;
@@ -87,12 +89,12 @@ int send_setup_msg()
 
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 {
-	struct vrr_header *header;
+	struct vrr_header header;
 	int mac_addr_len, i;
 
 	header.vrr_version = vrr->version;
 	header.pkt_type = vpkt->pkt_type;
-	header.protocol = ETH_P_VRR;
+	header.protocol = htons(ETH_P_VRR);
 	header.data_len = vpkt->data_len;
 	header.free = 0;
 	header.h_csum = 0;
@@ -103,11 +105,11 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	//determine what kind of header
 	if (vpkt->pkt_type == VRR_HELLO) {
 		for (i = 0; i < mac_addr_len; ++i) {
-			header->dest_mac[i] = 0xff;
+			header.dest_mac[i] = 0xff;
 		}
 	}
 	//add header
-	memcpy(skb_push(skb, sizeof(struct vrr_header)), header,
+	memcpy(skb_push(skb, sizeof(struct vrr_header)), &header,
 	       sizeof(struct vrr_header));
 
 	return 1;
