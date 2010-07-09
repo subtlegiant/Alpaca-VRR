@@ -24,11 +24,11 @@ int vrr_node_init()
 	 */
 	u_int rand_id;
 	int err;
-        rand_id = 0;
-        vrr->vset_size = 4;
-        vrr->rtable_value = 0;
-        vrr->version = 0x1;
-        vrr->dev_name = "eth1"; //hard coded for now
+	rand_id = 0;
+	vrr->vset_size = 4;
+	vrr->rtable_value = 0;
+	vrr->version = 0x1;
+	vrr->dev_name = "eth1";	//hard coded for now
 
 	//pset_state.lactive[0] = 1;
 
@@ -47,11 +47,13 @@ struct vrr_node *vrr_get_node()
  */
 int pset_state_init()
 {
-	pstate = (struct pset_state *)kmalloc(sizeof(struct pset_state), GFP_KERNEL);
+	pstate =
+	    (struct pset_state *)kmalloc(sizeof(struct pset_state), GFP_KERNEL);
 	pstate->la_size = (sizeof(pstate->l_active) / sizeof(int));
 	pstate->lna_size = (sizeof(pstate->l_not_active) / sizeof(int));
 	pstate->p_size = (sizeof(pstate->pending) / sizeof(int));
-	pstate->total_size = pstate->la_size + pstate->lna_size + pstate->p_size;
+	pstate->total_size =
+	    pstate->la_size + pstate->lna_size + pstate->p_size;
 
 	return 1;
 }
@@ -168,7 +170,8 @@ enum hrtimer_restart send_hpkt()
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
 	int data_size, i, err;
-	hpkt = (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
+	hpkt =
+	    (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
 
 	data_size = pstate->total_size;
 
@@ -207,7 +210,7 @@ enum hrtimer_restart send_hpkt()
 
 	hpkt->src = vrr->id;
 	hpkt->dst = 0;		//broadcast hello packet
-	hpkt->data_len= sizeof(hpkt_data);	//already in sk_buff
+	hpkt->data_len = sizeof(hpkt_data);	//already in sk_buff
 	hpkt->pkt_type = VRR_HELLO;
 	build_header(skb, hpkt);
 	kfree(hpkt);
@@ -223,14 +226,13 @@ int send_setup_req()
 {
 	struct sk_buff *skb;
 	struct vrr_packet *set_req;
-//	set_req->pkt_type = VRR_SETUP;
-//	build_header(skb, set_req);
-//	vrr_output(skb, VRR_SETUP_REQ);
- 	
+//      set_req->pkt_type = VRR_SETUP;
+//      build_header(skb, set_req);
+//      vrr_output(skb, VRR_SETUP_REQ);
+
 	return 1;
 
 }
 
 //TODO vrr exit node: release vrr node memory
 //                    release pset_state memory
-
