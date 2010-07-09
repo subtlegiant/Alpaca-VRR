@@ -167,6 +167,6 @@ enum hrtimer_restart send_hpkt(void);
 int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
-int vrr_output(struct sk_buff *skb, int type);
+int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
 
 #endif	/* _VRR_H */
