@@ -18,12 +18,13 @@ struct pset_state *pstate;
 
 int vrr_node_init()
 {
-	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
 	/*initialize all node
 	 * members.
 	 */
-	u_int rand_id;
+	u_int rand_id = 0;
 	int err;
+
+	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
 
 	//pset_state.lactive[0] = 1;
 
@@ -44,10 +45,13 @@ int pset_state_init()
 	pstate->p_size = (sizeof(pstate->pending) / sizeof(int));
 	pstate->total_size =
 	    pstate->la_size + pstate->lna_size + pstate->p_size;
+
+	return 0;
 }
 
 int send_setup_msg()
 {
+	return 0;
 }
 
 /* take a packet node and build header. Add header to sk_buff for
@@ -155,17 +159,17 @@ u_int get_vrr_id()
 
 /*build and send a hello packet */
 
-enum hrtimer_restart send_hpkt()
+enum hrtimer_restart send_hpkt(struct hrtimer *timer)
 {
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
 	int data_size, i, err;
+	int hpkt_data[data_size + 3];
+
 	hpkt =
 	    (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
 
 	data_size = pstate->total_size;
-
-	int hpkt_data[data_size + 3];
 
 	for (i = 0; i < pstate->la_size; ++i) {
 		hpkt_data[i] = pstate->l_active[i];
@@ -200,7 +204,7 @@ enum hrtimer_restart send_hpkt()
 
 	hpkt->src = vrr->id;
 	hpkt->dst = 0;		//broadcast hello packet
-	hpkt->payload = NULL;	//already in sk_buff
+	hpkt->payload = 0;	//already in sk_buff
 	hpkt->pkt_type = VRR_HELLO;
 	build_header(skb, hpkt);
 	kfree(hpkt);
@@ -214,12 +218,13 @@ enum hrtimer_restart send_hpkt()
 /*build and send a setup request*/
 int send_setup_req()
 {
-	struct sk_buff *skb;
-	struct vrr_packet *set_req;
+	struct sk_buff *skb = NULL;
+	struct vrr_packet *set_req = NULL;
+	
 	set_req->pkt_type = VRR_SETUP;
 	build_header(skb, set_req);
 	vrr_output(skb, VRR_SETUP_REQ);
-
+	return 0;
 }
 
 //TODO vrr exit node: release vrr node memory

@@ -159,8 +159,8 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	}
 
 	err = -ENOBUFS;
-	pkt = (struct vrr_packet *) kmalloc(sizeof(struct vrr_packet), 
-					    GFP_KERNEL);
+	pkt = (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet),
+					   GFP_KERNEL);
 	if (!pkt)
 		goto out_err;
 
@@ -171,7 +171,7 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	lock_sock(sk);
 
 	/* Allocate an skb for sending */
-	skb = sock_alloc_send_skb(sk, len + VRR_MAX_HEADER, 
+	skb = sock_alloc_send_skb(sk, len + VRR_MAX_HEADER,
 				  flags & MSG_DONTWAIT, &err);
 	if (err)
 		goto out;
@@ -197,12 +197,12 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 
 	VRR_DBG("sock %p, sk %p", sock, sk);
 
-out:
+ out:
 	kfree_skb(skb);
 	release_sock(sk);
 	return sent ? sent : err;
 
-out_err:
+ out_err:
 	release_sock(sk);
 	return err;
 }
