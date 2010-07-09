@@ -8,29 +8,32 @@
 /* this is a hack output function based on Chad's
  * mock module code to test header code.
  */
-static int vrr_output(struct sk_buff *skb, int type)
+static int vrr_output(struct sk_buff *skb, vrr_node *vrr, int type)
 {
-	int err, i;
-	size_t mac_addr_len = 6;
-	vrr_header *h = (vrr_header *) skb->data;
 
-	if (type == VRR_HELLO) {
-		sockaddr_ll addr;
-		memset(&addr, 0, sizeof(sockaddr_ll));
-		add.sll_family = AF_PACKET;
-		addr.sll_protocol = htons(ETH_P_VRR);
-		addr.sll_ifindex = 2;
-		addr.sll_halen = mac_addr_len;
-		memcpy(addr.sll_addr, h->dest_mac, sizeof(h->dest_mac));
+ 	struct net_device *dev;
+	struct eth_header *header;
+        struct vrr_header *vh;
+        vh = (vrr_header*)skb->data;
+        
+
+	dev = dev_get_by_name(&init_net, vrr->dev_name);
+	if(dev == 0) {
+	    printk(KERN_ALERT "failure in output");
 	}
 
-	int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_VRR); if (fd == -1)
-			return 0;
-			err = bind(fd, (struct sockaddr *)&addr,
-				   sizeof(struct sockaddr_ll)); if (err == -1)
-			return 0;
-			err =
-			sendto(fd, skb, sizeof(skb), 0,
-			       (struct sockaddr *)&addr,
-			       sizeof(struct sockaddr_ll)); if (err == -1)
-			return 0; return 1;}
+	if(type == VRR_HELLO) 
+   	    memcpy(header.dest, dev->broadcast, MAC_ADDR_LEN);
+          	
+ 	else if(type == VRR_DATA) 
+             memcpy(header.dest, vh->dest_mac, MAC_ADDR_LEN);
+
+        memcpy(header.source, dev->dev_addr, MAC_ADDR_LEN);
+	header.protocol = ETH_P_VRR;
+
+	skb_push(skb, sizeof(header));
+        memcpy(skb_push(skb, sizeof(header)), 
+	       &header, sizeof(header));
+ 
+        dev_queue_xmit(skb);
+}

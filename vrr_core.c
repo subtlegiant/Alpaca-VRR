@@ -18,13 +18,17 @@ struct pset_state *pstate;
 
 int vrr_node_init()
 {
+	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
 	/*initialize all node
 	 * members.
 	 */
-	u_int rand_id = 0;
+	u_int rand_id;
 	int err;
-
-	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
+        rand_id = 0;
+        vrr->vset_size = 4;
+        vrr->rtable_value = 0;
+        vrr->version = 0x1;
+        vrr->dev_name = "eth1"; //hard coded for now
 
 	//pset_state.lactive[0] = 1;
 
@@ -38,20 +42,18 @@ int vrr_node_init()
  */
 int pset_state_init()
 {
-	pstate =
-	    (struct pset_state *)kmalloc(sizeof(struct pset_state), GFP_KERNEL);
+	pstate = (struct pset_state *)kmalloc(sizeof(struct pset_state), GFP_KERNEL);
 	pstate->la_size = (sizeof(pstate->l_active) / sizeof(int));
 	pstate->lna_size = (sizeof(pstate->l_not_active) / sizeof(int));
 	pstate->p_size = (sizeof(pstate->pending) / sizeof(int));
-	pstate->total_size =
-	    pstate->la_size + pstate->lna_size + pstate->p_size;
+	pstate->total_size = pstate->la_size + pstate->lna_size + pstate->p_size;
 
-	return 0;
+	return 1;
 }
 
 int send_setup_msg()
 {
-	return 0;
+	return 1;
 }
 
 /* take a packet node and build header. Add header to sk_buff for
@@ -78,14 +80,13 @@ int send_setup_msg()
 
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 {
-	/* This doesn't need to be alloc'd on the heap. */
-	struct vrr_header header;
+	struct vrr_header *header;
 	int mac_addr_len, i;
 
 	header.vrr_version = vrr->version;
 	header.pkt_type = vpkt->pkt_type;
-	header.protocol = 0;
-	header.data_len = sizeof(skb->data);
+	header.protocol = ETH_P_VRR;
+	header.data_len = vpkt->data_len;
 	header.free = 0;
 	header.h_csum = 0;
 	header.src_id = vrr->id;
@@ -95,21 +96,14 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	//determine what kind of header
 	if (vpkt->pkt_type == VRR_HELLO) {
 		for (i = 0; i < mac_addr_len; ++i) {
-			header.dest_mac[i] = 0xff;
+			header->dest_mac[i] = 0xff;
 		}
 	}
+	//add header
+	memcpy(skb_push(skb, sizeof(struct vrr_header)), header,
+	       sizeof(struct vrr_header));
 
-	/* Advance skb->data, skb_tail by VRR_MAX_HEADER bytes. */
-	/* skb->head should still point at the beginning of the SKB
-	 * data area. */
-	skb_reserve(skb, VRR_MAX_HEADER);
-
-	if (memcpy(skb_push(skb, sizeof(struct vrr_header)), &header,
-		   sizeof(struct vrr_header))) {
-		return -EFAULT;
-	}
-
-	return 0;
+	return 1;
 }
 
 int rmv_header(struct sk_buff *skb)
@@ -164,17 +158,16 @@ u_int get_vrr_id()
 
 /*build and send a hello packet */
 
-enum hrtimer_restart send_hpkt(struct hrtimer *timer)
+enum hrtimer_restart send_hpkt()
 {
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
 	int data_size, i, err;
-	int hpkt_data[data_size + 3];
-
-	hpkt =
-	    (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
+	hpkt = (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
 
 	data_size = pstate->total_size;
+
+	int hpkt_data[data_size + 3];
 
 	for (i = 0; i < pstate->la_size; ++i) {
 		hpkt_data[i] = pstate->l_active[i];
@@ -209,11 +202,11 @@ enum hrtimer_restart send_hpkt(struct hrtimer *timer)
 
 	hpkt->src = vrr->id;
 	hpkt->dst = 0;		//broadcast hello packet
-	hpkt->payload = 0;	//already in sk_buff
+	hpkt->data_len= sizeof(hpkt_data);	//already in sk_buff
 	hpkt->pkt_type = VRR_HELLO;
 	build_header(skb, hpkt);
 	kfree(hpkt);
-	vrr_output(skb, VRR_HELLO);
+	vrr_output(skb, vrr, VRR_HELLO);
 
 	return 1;
  fail:
@@ -223,14 +216,16 @@ enum hrtimer_restart send_hpkt(struct hrtimer *timer)
 /*build and send a setup request*/
 int send_setup_req()
 {
-	struct sk_buff *skb = NULL;
-	struct vrr_packet *set_req = NULL;
+	struct sk_buff *skb;
+	struct vrr_packet *set_req;
+//	set_req->pkt_type = VRR_SETUP;
+//	build_header(skb, set_req);
+//	vrr_output(skb, VRR_SETUP_REQ);
+ 	
+	return 1;
 
-	set_req->pkt_type = VRR_SETUP;
-	build_header(skb, set_req);
-	vrr_output(skb, VRR_SETUP_REQ);
-	return 0;
 }
 
 //TODO vrr exit node: release vrr node memory
 //                    release pset_state memory
+

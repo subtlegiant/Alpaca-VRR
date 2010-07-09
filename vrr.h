@@ -24,7 +24,7 @@
 #define VRR_ERR(fmt, arg...)	printk(KERN_ERR "%s: " fmt "\n" , __func__ , ## arg)
 #define VRR_DBG(fmt, arg...)	pr_debug("%s: " fmt "\n" , __func__ , ## arg)
 
-#define VRR_HEADER	22
+#define VRR_HEADER      40	
 #define VRR_MAX_HEADER  VRR_HEADER + 128
 #define VRR_SKB_RESERVE 32
 #define VRR_VSET_SIZE	4
@@ -43,6 +43,19 @@
 #define u8 unsigned char
 #define u16 unsigned short
 #define u_int unsigned int
+
+//Mac address
+#define MAC_ADDR_LEN 6
+typedef unsigned char mac_addr[MAC_ADDR_LEN];
+
+
+struct eth_header {
+
+    mac_addr dest;
+    mac_addr src;
+    u16 protocol;
+
+};
 
 struct pset_state {
 	int l_active[VRR_PSET_SIZE];
@@ -73,6 +86,7 @@ struct vrr_node {
 	int vset_size; 
 	int rtable_value; //the size of the virtual neighborhood
 	u8 version;
+        char *dev_name;
 	//*rt = //pointer to the routing table
 	//*vset = //pointer to vset structure
 	//*pset = //pointer to a pset structure that maintains
@@ -82,7 +96,7 @@ struct vrr_node {
 struct vrr_packet {
 	u_int src; //the current node id
 	u_int dst; //the destination id
-	u_int payload; //data being sent
+	u16 data_len; //data being sent
 	u8 pkt_type; //hello message, setup, setup_req etc
 };
 
@@ -119,9 +133,6 @@ typedef struct routing_table_entry {
 	int path_id;		//Path ID
 } rt_entry;
 
-//Mac address
-#define MAC_ADDR_LEN 6
-typedef unsigned char mac_addr[MAC_ADDR_LEN];
 
 
 static inline struct vrr_sock *vrr_sk(const struct sock *sk)
@@ -151,7 +162,7 @@ int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 u_int get_vrr_id(void);
 int vrr_node_init(void);
 int pset_state_init(void);
-enum hrtimer_restart send_hpkt(struct hrtimer *timer);
+enum hrtimer_restart send_hpkt(void);
 int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);

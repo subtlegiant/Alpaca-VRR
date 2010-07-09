@@ -65,12 +65,12 @@ static int __init vrr_init(void)
 
 	//start hello packet timer
 	ktime_t ktime;
-        unsigned long delay = 1000L;
+	unsigned long delay = 1000L;
 
 	ktime = ktime_set(0, MS_TO_NS(delay));
 	hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-        hr_timer.function = &send_hpkt;
-	hrtimer_start(&hr_timer, ktime, HRTIMER_MODE_REL); 
+	hr_timer.function = &send_hpkt;
+	hrtimer_start(&hr_timer, ktime, HRTIMER_MODE_REL);
 
 	VRR_INFO("Begin init");
 

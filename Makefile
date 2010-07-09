@@ -1,5 +1,5 @@
 obj-m := vrr.o
-vrr-objs := vrr_mod.o vrr_core.o vrr_input.o af_vrr.o vrr_data.o
+vrr-objs := vrr_mod.o vrr_core.o vrr_input.o vrr_output.o af_vrr.o vrr_data.o
 KDIR := /usr/src/linux-headers-2.6.34
 PWD := $(shell pwd)
 
