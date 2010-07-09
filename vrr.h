@@ -150,6 +150,7 @@ int get_pkt_type(struct sk_buff *skb);
 int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 u_int get_vrr_id(void);
 int vrr_node_init(void);
+struct vrr_node *vrr_get_node(void);
 int pset_state_init(void);
 enum hrtimer_restart send_hpkt(struct hrtimer *timer);
 int send_setup_req(void);

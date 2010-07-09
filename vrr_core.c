@@ -33,6 +33,11 @@ int vrr_node_init()
 	return err;
 }
 
+struct vrr_node *vrr_get_node()
+{
+	return vrr;
+}
+
 /* allocate the structure and set the size fields
  * for the states
  */
