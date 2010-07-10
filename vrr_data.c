@@ -9,6 +9,9 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 #include "vrr.h"
 #include "vrr_data.h"
 
+//My Node
+static u_int ME;
+
 //Routing Table Setup
 struct rt_node {
 	struct rb_node node;
@@ -33,6 +36,7 @@ static pset_list_t pset;
 typedef struct vset_list {
 	struct list_head list;
 	u_int node;
+	int diff;
 } vset_list_t;
 
 static int vset_size = 0;
@@ -40,9 +44,13 @@ static vset_list_t vset;
 //static u_int vset[VRR_VSET_SIZE];
 
 
+//internal functions
+u_int get_diff(u_int x, u_int y);
+void insert_vset_node(u_int node);
 
 void vrr_data_init()
 {
+	ME = 10;	//TODO: Need to actually get a value from somewhere
 	rt_root = RB_ROOT;	//Initialize the routing table Tree
 	INIT_LIST_HEAD(&pset.list);
 	INIT_LIST_HEAD(&vset.list);
@@ -190,19 +198,89 @@ void pset_get_mac(u_int node, mac_addr * mac)
  */
 int vset_add(u_int node)
 {
-	//i = x - y
-	//j = y - x
-	//diff = min(i,j)
+	vset_list_t * tmp;
+	struct list_head * pos;
+
+	list_for_each(pos, &vset.list){	//check to see if node already exists
+		tmp= list_entry(pos, vset_list_t, list);
+		if (tmp->node == node) {
+			return 0;
+		}
+	}
+
+	if (vset_size < VRR_VSET_SIZE) {
+		insert_vset_node(node);
+		return 1;
+	}
+
+
+	//TODO: find possible node to remove to add the new node
+	//u_int get_diff(u_int x, u_int y)
+	u_int half = UINT_MAX/2;
 	vset_size += 0;
 	return 0;
 }
 
 int vset_remove(u_int node)
 {
+	vset_list_t * tmp;
+	struct list_head * pos, *q;
+
+	list_for_each_safe(pos, q, &vset.list) {
+		tmp= list_entry(pos, vset_list_t, list);
+		if (tmp->node == node) {
+			list_del(pos);
+			kfree(tmp);
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
-u_int *vset_get_all()
+
+//Good way to call this function:
+// int vset_size = get_vset_size();
+// u_int vset_all[vset_size];
+// vset_get_all(vset_all);
+void vset_get_all(u_int * vset_all)
 {
-	return NULL;
+	vset_list_t * tmp;
+	struct list_head * pos;
+	int i = 0;
+
+	list_for_each(pos, &vset.list){	
+		tmp= list_entry(pos, vset_list_t, list);
+		vset_all[i] = tmp->node;
+		i++;
+	}
+	return;
 }
+
+int get_vset_size()
+{
+	return vset_size;
+}
+
+
+
+
+//Helper Functions
+u_int get_diff(u_int x, u_int y)
+{
+	u_int i = x - y;
+	u_int j = y - x;
+	if (i < j)
+		return i;
+	return j;
+}
+
+void insert_vset_node(u_int node)
+{
+	vset_list_t * tmp;
+	tmp = (vset_list_t *) kmalloc(sizeof(vset_list_t), GFP_KERNEL);
+	tmp->node = node;
+	list_add(&(tmp->list), &(vset.list));
+	vset_size += 1;
+}
+
