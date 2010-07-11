@@ -58,12 +58,12 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint);
 
 void vrr_data_init()
 {
-	printk(KERN_ALERT "\nvrr_data_init enter\n");
+	printk(KERN_ALERT "vrr_data_init enter\n");
 	ME = get_vrr_id();	
 	rt_root = RB_ROOT;	//Initialize the routing table Tree
 	INIT_LIST_HEAD(&pset.list);
 	INIT_LIST_HEAD(&vset.list);
-	printk(KERN_ALERT "\nvrr_data_init leave\n");
+	printk(KERN_ALERT "vrr_data_init leave\n");
 }
 
 /*
