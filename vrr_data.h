@@ -47,9 +47,8 @@ int pset_update_status(u_int node, u_int new_status);
  * vset_remove : Remove a node from the virtual set.  Returns 1 on success,
  *	0 on failure
  * vset_get_all : pass in an array of size of the vset, and this function will
- *	populate it with all the vset nodes.
+ *	populate it with all the vset nodes.  Returns the size of the array.
  */
 int vset_add(u_int node);
 int vset_remove(u_int node);
-void vset_get_all(u_int * vset_all);
-int get_vset_size(void);
+int vset_get_all(u_int * vset_all);

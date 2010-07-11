@@ -183,7 +183,7 @@ void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint)
 }
 
 
-int rt_remove_nexts(u_int route_hop_to_remove)
+int rt_remove_nexts(u_int route_hop_to_remove)  //TODO: code this
 {
 	return 0;
 }
@@ -329,25 +329,21 @@ int vset_remove(u_int node)
 
 
 //Good way to call this function:
-// int vset_size = get_vset_size();
-// u_int vset_all[vset_size];
-// vset_get_all(vset_all);
-void vset_get_all(u_int * vset_all)
+// int current_vset_size;
+// u_int * vset_all = NULL;
+// current_vset_size = vset_get_all(vset_all);
+int vset_get_all(u_int * vset_all)
 {
 	vset_list_t * tmp;
 	struct list_head * pos;
 	int i = 0;
+	vset_all = (u_int *) kmalloc(vset_size * sizeof(u_int), GFP_KERNEL);
 
 	list_for_each(pos, &vset.list){	
 		tmp= list_entry(pos, vset_list_t, list);
 		vset_all[i] = tmp->node;
 		i++;
 	}
-	return;
-}
-
-int get_vset_size()
-{
 	return vset_size;
 }
 
