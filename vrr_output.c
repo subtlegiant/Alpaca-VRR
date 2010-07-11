@@ -29,4 +29,6 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 	memcpy(skb_push(skb, sizeof(header)), &header, sizeof(header));
 
 	dev_queue_xmit(skb);
+ 
+	return 0;
 }

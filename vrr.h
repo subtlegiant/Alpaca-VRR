@@ -109,7 +109,7 @@ struct vrr_sock {
 struct vrr_header {
 	u8 vrr_version;
 	u8 pkt_type;
-	u8 protocol;
+	u16 protocol;
 	u16 data_len;
         u8 free;
         u16 h_csum;
@@ -163,7 +163,7 @@ u_int get_vrr_id(void);
 int vrr_node_init(void);
 struct vrr_node *vrr_get_node(void);
 int pset_state_init(void);
-enum hrtimer_restart send_hpkt(void);
+enum hrtimer_restart send_hpkt(struct hrtimer* timer);
 int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);

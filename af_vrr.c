@@ -75,7 +75,7 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 		       struct msghdr *msg, size_t len, int flags)
 {
 	struct sock *sk = sock->sk;
-	struct vrr_sock *vrr = vrr_sk(sk);
+//	struct vrr_sock *vrr = vrr_sk(sk);
 	struct sockaddr_vrr *svrr = (struct sockaddr_vrr *)msg->msg_name;
 	struct sk_buff *skb;
 	size_t copied = 0;
@@ -84,7 +84,7 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 	VRR_DBG("sock %p sk %p len %zu", sock, sk, len);
 
 	/* Pull skb from sk->sk_receive_queue */
-	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
+	 skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
 				flags & MSG_DONTWAIT, &err);
 	if (!skb)
 		goto out;
@@ -144,7 +144,7 @@ static int vrr_release(struct socket *sock)
 static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 		       struct msghdr *msg, size_t len)
 {
-	int addr_len = msg->msg_namelen;
+//	int addr_len = msg->msg_namelen;
 	int err = 0;
 	int flags = msg->msg_flags;
 	size_t sent = 0;
@@ -152,7 +152,7 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	struct sock *sk = sock->sk;
 	struct sockaddr_vrr *addr = (struct sockaddr_vrr *)msg->msg_name;
 	struct vrr_packet *pkt = NULL;
-	struct vrr_sock *vrr = vrr_sk(sk);
+//	struct vrr_sock *vrr = vrr_sk(sk);
 
 	if (sk->sk_shutdown & SEND_SHUTDOWN) {
 		return -EPIPE;
