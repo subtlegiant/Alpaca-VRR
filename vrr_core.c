@@ -211,6 +211,7 @@ enum hrtimer_restart send_hpkt()
 
 	return HRTIMER_RESTART;
  fail:
+	printk(KERN_DEBUG "hello skb buff failed");
 	return HRTIMER_RESTART;
 }
 
