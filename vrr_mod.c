@@ -25,7 +25,6 @@ static struct packet_type vrr_packet_type __read_mostly = {
 	.func = vrr_rcv,
 };
 
-//static struct vrr_node *node;
 static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
 		       char *buf)
 {
@@ -57,15 +56,12 @@ static int __init vrr_init(void)
 	   6. Build hello packet and send to establish a proxy 
 	   7. There is probably alot more than this */
 
-	int err = 0;
-	//node->id = 3;
-
-	/*if(!(node = kzalloc(sizeof(struct vrr_node), GFP_KERNEL)));
-	   return -ENOMEM; */
+	int err;
+        unsigned long delay;
 
 	//start hello packet timer
 	ktime_t ktime;
-	unsigned long delay = 1000L;
+	delay = 1000L;
 
 	ktime = ktime_set(0, MS_TO_NS(delay));
 	hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);

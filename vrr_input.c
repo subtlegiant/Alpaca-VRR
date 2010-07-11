@@ -3,7 +3,7 @@
 #include "linux/netdevice.h"
 #include "vrr.h"
 
-static int vrr_active = 0;	//Activates after first route successfully set up
+//static int vrr_active = 0;	//Activates after first route successfully set up
 
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	    struct net_device *orig_dev)
@@ -11,7 +11,9 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	/* Do stuff! */
 	VRR_DBG("Received a VRR packet!");
 
-	int vrr_pkt_type = get_pkt_type(skb);
+	int pkt_type;
+
+        pkt_type = get_pkt_type(skb);
 	/* skb->pkt_type should be ETH_P_VRR */
 
 	/*
@@ -46,6 +48,7 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	   kfree_skb(skb);
 	   return NET_RX_DROP;
 	 */
+         return 1;
 }
 
 /*DEFINITIONS

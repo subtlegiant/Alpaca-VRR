@@ -86,7 +86,7 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 
 	header.vrr_version = vrr->version;
 	header.pkt_type = vpkt->pkt_type;
-	header.protocol = htons(ETH_P_VRR);
+	header.protocol = ETH_P_VRR;
 	header.data_len = vpkt->data_len;
 	header.free = 0;
 	header.h_csum = 0;
@@ -107,14 +107,16 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	return 1;
 }
 
-int rmv_header(struct sk_buff *skb)
+int rmv_vrr_header(struct sk_buff *skb)
 {
 	/*remove the header for handoff to the socket layer
 	 * this is only for packets received
-	 */
+	 */
 
 	return 1;
 }
+
+
 
 /*Check the header for packet type and destination.
   */
@@ -159,17 +161,18 @@ u_int get_vrr_id()
 
 /*build and send a hello packet */
 
-enum hrtimer_restart send_hpkt()
+enum hrtimer_restart send_hpkt(struct hrtimer* timer)
 {
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
-	int data_size, i, err;
+	int data_size, i;
+  	int *hpkt_data;
+
 	hpkt = (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
 
 	data_size = pstate->total_size;
-
-	int hpkt_data[data_size + 3];
-
+        hpkt_data = (int*)kmalloc((data_size + 3) * sizeof(int), GFP_KERNEL);
+	
 	for (i = 0; i < pstate->la_size; ++i) {
 		hpkt_data[i] = pstate->l_active[i];
 	}
@@ -215,11 +218,16 @@ enum hrtimer_restart send_hpkt()
 	return HRTIMER_RESTART;
 }
 
+struct vrr_node* vrr_get_node()
+{
+ 	return vrr;
+}
+
 /*build and send a setup request*/
 int send_setup_req()
 {
-	struct sk_buff *skb;
-	struct vrr_packet *set_req;
+//	struct sk_buff *skb;
+//	struct vrr_packet *set_req;
 //	set_req->pkt_type = VRR_SETUP;
 //	build_header(skb, set_req);
 //	vrr_output(skb, VRR_SETUP_REQ);
