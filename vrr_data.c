@@ -53,6 +53,7 @@ static vset_list_t vset;
 u_int get_diff(u_int x, u_int y);
 void insert_vset_node(u_int node);
 void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint);
+u_int rt_search(struct rb_root *root, u_int value);
 u_int route_list_helper(routes_list_t * r_list, u_int endpoint);
 
 void vrr_data_init()
