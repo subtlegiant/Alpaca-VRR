@@ -13,20 +13,25 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 static u_int ME;
 
 //Routing Table Setup
-struct rt_node {
-	struct rb_node node;
-	u_int route;
-	rt_entry routes;
-};
+typedef struct routes_list {
+	rt_entry		route;
+	struct list_head	list;
+} routes_list_t;
+
+typedef struct rt_node {
+	struct rb_node	node;
+	u_int		route;
+	routes_list_t	routes;
+} rt_node_t;
 
 static struct rb_root rt_root;
 
 //Physical Set Setup
 typedef struct pset_list {
-	struct list_head list;
-	u_int node;
-	u_int status;
-	mac_addr mac;
+	struct list_head	list;
+	u_int			node;
+	u_int			status;
+	mac_addr		mac;
 } pset_list_t;
 
 static int pset_size = 0;
@@ -34,9 +39,9 @@ static pset_list_t pset;
 
 //Virtual Set Setup
 typedef struct vset_list {
-	struct list_head list;
-	u_int node;
-	int diff;
+	struct list_head	list;
+	u_int			node;
+	int			diff;
 } vset_list_t;
 
 static int vset_size = 0;
@@ -47,10 +52,12 @@ static vset_list_t vset;
 //internal functions
 u_int get_diff(u_int x, u_int y);
 void insert_vset_node(u_int node);
+void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint);
+u_int route_list_helper(routes_list_t * r_list, u_int endpoint);
 
 void vrr_data_init()
 {
-	ME = 10;	//TODO: Need to actually get a value from somewhere
+	ME = get_vrr_id();	
 	rt_root = RB_ROOT;	//Initialize the routing table Tree
 	INIT_LIST_HEAD(&pset.list);
 	INIT_LIST_HEAD(&vset.list);
@@ -64,21 +71,22 @@ u_int rt_search(struct rb_root *root, u_int value)
 	struct rb_node *node = root->rb_node;	// top of the tree
 
 	while (node) {
-		struct rt_node *curr = rb_entry(node, struct rt_node, node);
+		rt_node_t *curr = rb_entry(node, rt_node_t, node);
 
 		if (curr->route > value)
 			node = node->rb_left;
 		else if (curr->route < value)
 			node = node->rb_right;
-		else
-			return curr->route;	// Found it
+		else {
+			return route_list_helper(&curr->routes, value);
+		}
 	}
 	return 0;
 }
 
 /*
  * Returns the next hop in the routing table, given the destination
- * parameter.  Returns -1 when no route exists.
+ * parameter.  Returns 0 when no route exists.
  */
 u_int rt_get_next(u_int dest)
 {
@@ -89,12 +97,93 @@ u_int rt_get_next(u_int dest)
 		return 0;
 }
 
-int rt_add_route(struct routing_table_entry new_entry)
+/* Helper function to search a list of route entries of a particular node, for the
+ * next path node with the highest path_id
+ */
+u_int route_list_helper(routes_list_t * r_list, u_int endpoint) 
 {
-	return 0;
+	routes_list_t * tmp = NULL;
+	routes_list_t * max_entry = NULL;
+	struct list_head * pos;
+	int max_path = -1;
+
+	list_for_each(pos, &r_list->list){	
+		tmp= list_entry(pos, routes_list_t, list);
+		if (tmp->route.path_id > max_path) {
+			max_entry = tmp;
+			max_path = tmp->route.path_id;
+		}
+	}
+
+	if(endpoint == max_entry->route.ea)
+		return max_entry->route.na;
+	return max_entry->route.nb;
 }
 
-int rt_remove_nexts(u_int route_hop_to_remove)
+
+/**
+ * Adds a route to the rb tree.  Might add two different entries if there
+ * are both ea and eb values for the route.
+ */
+void rt_add_route(struct routing_table_entry new_entry)
+{
+	if (new_entry.ea) {
+		rt_insert_helper(&rt_root, new_entry, new_entry.ea);
+	}
+	if (new_entry.eb) {
+		rt_insert_helper(&rt_root, new_entry, new_entry.eb);
+	}
+}
+
+/* Helper function to add new entries to routing table.
+ */
+void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint)
+{
+	struct rb_node **link = &root->rb_node;
+	struct rb_node *parent=NULL;
+	rt_node_t * curr=NULL;
+	int exists = 0;
+
+	while (*link) //Find node to insert at
+	{
+		parent = *link;
+		curr = rb_entry(parent, rt_node_t, node);
+
+		if (curr->route > endpoint)
+			link = &(*link)->rb_left;
+		else if (curr->route < endpoint)
+			link = &(*link)->rb_right;
+		else {
+			link=NULL;
+			exists=1;
+		}	
+	}
+
+	if(exists) { //add new_entry to curr->routes
+		routes_list_t * tmp;
+
+		tmp = (routes_list_t *) kmalloc(sizeof(routes_list_t), GFP_KERNEL);
+        	memcpy(&tmp->route, &new_entry, sizeof(rt_entry));
+
+		list_add(&(tmp->list), &(curr->routes.list));
+	}
+	else {
+		//create new rt_entry_t node
+		rt_node_t * new_node = (rt_node_t *) kmalloc(sizeof(rt_node_t), GFP_KERNEL);
+		new_node->route = endpoint;
+		//initialize new routes list
+		INIT_LIST_HEAD( &(new_node->routes.list) );
+		//copy new_entry to this new list
+        	memcpy(&new_node->routes.route, &new_entry, sizeof(rt_entry));
+
+		// Put the new node there
+		rb_link_node(&(new_node->node), parent, link);
+		rb_insert_color(&(new_node->node), root);
+	}
+}
+
+
+int rt_remove_nexts(u_int route_hop_to_remove)  //TODO: code this
 {
 	return 0;
 }
@@ -216,7 +305,7 @@ int vset_add(u_int node)
 
 	//TODO: find possible node to remove to add the new node
 	//u_int get_diff(u_int x, u_int y)
-	u_int half = UINT_MAX/2;
+	//u_int half = UINT_MAX/2;
 	vset_size += 0;
 	return 0;
 }
@@ -240,25 +329,21 @@ int vset_remove(u_int node)
 
 
 //Good way to call this function:
-// int vset_size = get_vset_size();
-// u_int vset_all[vset_size];
-// vset_get_all(vset_all);
-void vset_get_all(u_int * vset_all)
+// int current_vset_size;
+// u_int * vset_all = NULL;
+// current_vset_size = vset_get_all(vset_all);
+int vset_get_all(u_int * vset_all)
 {
 	vset_list_t * tmp;
 	struct list_head * pos;
 	int i = 0;
+	vset_all = (u_int *) kmalloc(vset_size * sizeof(u_int), GFP_KERNEL);
 
 	list_for_each(pos, &vset.list){	
 		tmp= list_entry(pos, vset_list_t, list);
 		vset_all[i] = tmp->node;
 		i++;
 	}
-	return;
-}
-
-int get_vset_size()
-{
 	return vset_size;
 }
 
