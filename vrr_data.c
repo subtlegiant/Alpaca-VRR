@@ -64,6 +64,19 @@ void vrr_data_init()
 }
 
 /*
+ * Returns the next hop in the routing table, given the destination
+ * parameter.  Returns 0 when no route exists.
+ */
+u_int rt_get_next(u_int dest)
+{
+	u_int next = rt_search(&rt_root, dest);
+	if (next != 0)
+		return next;
+	else
+		return 0;
+}
+
+/*
  * Helper function to search the Red-Black Tree routing table
  */
 u_int rt_search(struct rb_root *root, u_int value)
@@ -82,19 +95,6 @@ u_int rt_search(struct rb_root *root, u_int value)
 		}
 	}
 	return 0;
-}
-
-/*
- * Returns the next hop in the routing table, given the destination
- * parameter.  Returns 0 when no route exists.
- */
-u_int rt_get_next(u_int dest)
-{
-	u_int next = rt_search(&rt_root, dest);
-	if (next != 0)
-		return next;
-	else
-		return 0;
 }
 
 /* Helper function to search a list of route entries of a particular node, for the
