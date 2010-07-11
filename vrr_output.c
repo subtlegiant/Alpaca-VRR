@@ -3,13 +3,13 @@
 /* this is a hack output function based on Chad's
  * mock module code to test header code.
  */
-int vrr_output(struct sk_buff *skb, struct vrr_node * vrr, int type)
+int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 {
 
 	struct net_device *dev;
 	struct eth_header header;
 	struct vrr_header *vh;
-	vh = (struct vrr_header *) skb->data;
+	vh = (struct vrr_header *)skb->data;
 
 	dev = dev_get_by_name(&init_net, vrr->dev_name);
 	if (dev == 0) {
