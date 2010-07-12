@@ -40,8 +40,6 @@ int vrr_node_init()
 
 	//pset_state.lactive[0] = 1;
 
-	err = set_vrr_id(rand_id);
-
 	return 0;
 }
 
@@ -128,6 +126,7 @@ int rmv_vrr_header(struct sk_buff *skb)
 /*Check the header for packet type and destination.
   */
 int get_pkt_type(struct sk_buff *skb)
+
 {
 	/*use the offset to access the
 	 * packet type, return one of the
