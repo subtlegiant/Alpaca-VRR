@@ -93,7 +93,7 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 
 	header.vrr_version = vrr->version;
 	header.pkt_type = vpkt->pkt_type;
-	header.protocol = ETH_P_VRR;
+	header.protocol = 27;
 	header.data_len = vpkt->data_len;
 	header.free = 0;
 	header.h_csum = 0;
