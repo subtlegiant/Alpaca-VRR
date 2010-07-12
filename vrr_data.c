@@ -6,6 +6,7 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 
 #include <linux/rbtree.h>
 #include <linux/list.h>
+#include <linux/kernel.h>
 #include "vrr.h"
 #include "vrr_data.h"
 
@@ -53,14 +54,30 @@ static vset_list_t vset;
 u_int get_diff(u_int x, u_int y);
 void insert_vset_node(u_int node);
 void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint);
+u_int rt_search(struct rb_root *root, u_int value);
 u_int route_list_helper(routes_list_t * r_list, u_int endpoint);
 
 void vrr_data_init()
 {
+	printk(KERN_ALERT "vrr_data_init enter\n");
 	ME = get_vrr_id();	
 	rt_root = RB_ROOT;	//Initialize the routing table Tree
 	INIT_LIST_HEAD(&pset.list);
 	INIT_LIST_HEAD(&vset.list);
+	printk(KERN_ALERT "vrr_data_init leave\n");
+}
+
+/*
+ * Returns the next hop in the routing table, given the destination
+ * parameter.  Returns 0 when no route exists.
+ */
+u_int rt_get_next(u_int dest)
+{
+	u_int next = rt_search(&rt_root, dest);
+	if (next != 0)
+		return next;
+	else
+		return 0;
 }
 
 /*
@@ -82,19 +99,6 @@ u_int rt_search(struct rb_root *root, u_int value)
 		}
 	}
 	return 0;
-}
-
-/*
- * Returns the next hop in the routing table, given the destination
- * parameter.  Returns 0 when no route exists.
- */
-u_int rt_get_next(u_int dest)
-{
-	u_int next = rt_search(&rt_root, dest);
-	if (next != 0)
-		return next;
-	else
-		return 0;
 }
 
 /* Helper function to search a list of route entries of a particular node, for the
