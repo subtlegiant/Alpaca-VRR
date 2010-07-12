@@ -1,6 +1,8 @@
 #ifndef _VRR_H
 #define _VRR_H
 
+#include <linux/if_ether.h>
+#include <linux/module.h>
 #include <linux/skbuff.h>
 #include <linux/socket.h>
 #include <linux/netdevice.h>
@@ -14,7 +16,7 @@
 
 //Data packet types:
 #define VRR_DATA    	0x0
-#define VRR_HELLO   	0x1
+#define VRR_HELLO   	1
 #define VRR_SETUP_REQ   0x2
 #define VRR_SETUP   	0x3
 #define VRR_SETUP_FAIL  0x4
@@ -26,7 +28,7 @@
 
 #define VRR_HEADER      40	
 #define VRR_MAX_HEADER  VRR_HEADER + 128
-#define VRR_SKB_RESERVE 32
+#define VRR_SKB_RESERVE 80 
 #define VRR_VSET_SIZE	4
 #define VRR_PSET_SIZE	20
 
@@ -40,6 +42,8 @@
 #define VRR_SRC         0x10
 #define VRR_DST         0x18
 
+#define VRR_HPKT_DELAY  1000
+
 #define u8 unsigned char
 #define u16 unsigned short
 #define u_int unsigned int
@@ -47,12 +51,12 @@
 //Mac address
 #define MAC_ADDR_LEN 6
 typedef unsigned char mac_addr[MAC_ADDR_LEN];
-
+extern struct net init_net;
 
 struct eth_header {
 
     mac_addr dest;
-    mac_addr src;
+    mac_addr source;
     u16 protocol;
 
 };
@@ -70,6 +74,7 @@ struct pset_state {
 
 /* Structure describing a VRR socket address. */
 #define __SOCK_SIZE__	16      /* sizeof(struct sockaddr) */
+#define svrr_zero	__pad
 struct sockaddr_vrr {
 	sa_family_t	svrr_family; /* AF_VRR */
 	unsigned long	svrr_addr;   /* VRR identifier */
@@ -79,7 +84,6 @@ struct sockaddr_vrr {
                               sizeof(sa_family_t) -
                               sizeof(unsigned long)];
 };
-#define svrr_zero	__pad
 
 struct vrr_node {
 	u_int id; //128 bit identifier to match those of IP
@@ -163,7 +167,7 @@ u_int get_vrr_id(void);
 int vrr_node_init(void);
 struct vrr_node *vrr_get_node(void);
 int pset_state_init(void);
-enum hrtimer_restart send_hpkt(struct hrtimer* timer);
+int send_hpkt(void);
 int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);

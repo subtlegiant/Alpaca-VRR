@@ -99,7 +99,7 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 	if (err)
 		goto done;
 
-	sock_recv_ts_and_drops(msg, sk, skb);
+//	sock_recv_ts_and_drops(msg, sk, skb);
 
 	if (svrr) {
 		svrr->svrr_family = AF_VRR;
@@ -244,7 +244,7 @@ static struct proto_ops vrr_proto_ops = {
 };
 
 static int vrr_create(struct net *net, struct socket *sock,
-		      int protocol, int kern)
+		      int protocol)
 {
 	struct sock *sk;
 	struct vrr_sock *vrr;

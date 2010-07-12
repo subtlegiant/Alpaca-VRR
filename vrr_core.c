@@ -21,21 +21,23 @@ int vrr_node_init()
 	/*initialize all node
 	 * members.
 	 */
-	u_int rand_id;
-	int err;
+	int rand_id;
+
+	vrr = kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
+  	if(!vrr){
+	    printk(KERN_CRIT "Could not allocate vrr node");
+	    return -1;
+	}
+	 
         rand_id = 0;
         vrr->vset_size = 4;
         vrr->rtable_value = 0;
-        vrr->version = 0x1;
-        vrr->dev_name = "eth1"; //hard coded for now
+        vrr->version = 1;
+//	vrr->dev_name = "eth1"; //hard coded for now
+	vrr->id = 1;
+	
 
-	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
-
-	//pset_state.lactive[0] = 1;
-
-	err = set_vrr_id(rand_id);
-
-	return err;
+	return 0;
 }
 
 /* allocate the structure and set the size fields
@@ -43,7 +45,7 @@ int vrr_node_init()
  */
 int pset_state_init()
 {
-	pstate = (struct pset_state *)kmalloc(sizeof(struct pset_state), GFP_KERNEL);
+	pstate = kmalloc(sizeof(struct pset_state), GFP_KERNEL);
 	pstate->la_size = (sizeof(pstate->l_active) / sizeof(int));
 	pstate->lna_size = (sizeof(pstate->l_not_active) / sizeof(int));
 	pstate->p_size = (sizeof(pstate->pending) / sizeof(int));
@@ -111,7 +113,7 @@ int rmv_vrr_header(struct sk_buff *skb)
 {
 	/*remove the header for handoff to the socket layer
 	 * this is only for packets received
-	 */
+	 */
 
 	return 1;
 }
@@ -146,6 +148,7 @@ int set_vrr_id(u_int vrr_id)
 		/*set the id in the vrr node
 		 */
 	}
+        vrr->id = 1;
 
 	return 1;
 }
@@ -161,17 +164,18 @@ u_int get_vrr_id()
 
 /*build and send a hello packet */
 
-enum hrtimer_restart send_hpkt(struct hrtimer* timer)
+int send_hpkt()
 {
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
 	int data_size, i;
   	int *hpkt_data;
 
-	hpkt = (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
+	hpkt = kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
 
 	data_size = pstate->total_size;
-        hpkt_data = (int*)kmalloc((data_size + 3) * sizeof(int), GFP_KERNEL);
+        hpkt_data = (int*)
+		kmalloc((data_size + 3) * sizeof(int), GFP_KERNEL);
 	
 	for (i = 0; i < pstate->la_size; ++i) {
 		hpkt_data[i] = pstate->l_active[i];
@@ -210,12 +214,14 @@ enum hrtimer_restart send_hpkt(struct hrtimer* timer)
 	hpkt->pkt_type = VRR_HELLO;
 	build_header(skb, hpkt);
 	kfree(hpkt);
+        printk(KERN_ALERT "Made it here");
 	vrr_output(skb, vrr, VRR_HELLO);
 
-	return HRTIMER_RESTART;
+     	printk(KERN_ALERT "packet sent");	
+	return 0;
  fail:
 	printk(KERN_DEBUG "hello skb buff failed");
-	return HRTIMER_RESTART;
+	return -1;
 }
 
 struct vrr_node* vrr_get_node()
@@ -238,4 +244,4 @@ int send_setup_req()
 
 //TODO vrr exit node: release vrr node memory
 //                    release pset_state memory
-
+//		      stop timer

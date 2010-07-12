@@ -7,18 +7,20 @@
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <net/sock.h>
-#include <linux/hrtimer.h>
-#include <linux/ktime.h>
+#include <linux/timer.h>
+#include <linux/jiffies.h>
 
 #include "vrr.h"
 #include "vrr_data.h"
 
-#define MS_TO_NS(x)	(x * 1E6L)
+static void hpkt_timer_tick(unsigned long arg);
 
 /* Defined in af_vrr.c */
 extern const struct net_proto_family vrr_family_ops;
 extern struct proto vrr_proto;
-static struct hrtimer hr_timer;
+
+static struct timer_list hpkt_timer =
+		TIMER_INITIALIZER (hpkt_timer_tick, 0, 0);
 
 static struct packet_type vrr_packet_type __read_mostly = {
 	.type = cpu_to_be16(ETH_P_VRR),
@@ -45,6 +47,22 @@ static struct attribute_group attr_group = {
 
 static struct kobject *vrr_obj;
 
+static void hpkt_timer_tick(unsigned long arg)
+{
+	unsigned long tdelay;
+
+	tdelay = jiffies + VRR_HPKT_DELAY;
+
+	if(send_hpkt() != 0) {
+	    printk(KERN_CRIT "Hello packet was not sent");
+	}
+
+	mod_timer(&hpkt_timer, tdelay);
+     
+	printk(KERN_ALERT "Hello packet sent");
+}
+	
+
 //Initialize the module
 static int __init vrr_init(void)
 {
@@ -57,21 +75,17 @@ static int __init vrr_init(void)
 	   7. There is probably alot more than this */
 
 	int err;
-        unsigned long delay;
+        unsigned long tdelay;
 
 	//start hello packet timer
-	ktime_t ktime;
-	delay = 1000L;
+	tdelay = jiffies + VRR_HPKT_DELAY;
 
-    /*	ktime = ktime_set(0, MS_TO_NS(delay));
-	hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	hr_timer.function = &send_hpkt;
-	hrtimer_start(&hr_timer, ktime, HRTIMER_MODE_REL);*/
+    	mod_timer(&hpkt_timer, tdelay);
 
 	VRR_INFO("Begin init");
 
-	vrr_data_init();
 	vrr_node_init();
+	vrr_data_init();
 	pset_state_init();
 
 	err = proto_register(&vrr_proto, 1);
@@ -111,7 +125,7 @@ static void __exit vrr_exit(void)
 {
 	sock_unregister(AF_VRR);
 	dev_remove_pack(&vrr_packet_type);
-
+	del_timer(&hpkt_timer);
 	/* Cleanup routing/sysfs stuff here */
 	kobject_put(vrr_obj);
 

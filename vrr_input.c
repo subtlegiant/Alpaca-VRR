@@ -11,7 +11,7 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	int pkt_type;
 
 	/* Do stuff! */
-	VRR_DBG("Received a VRR packet!");
+	printk(KERN_ALERT "Received a VRR packet!");
 
 	
         pkt_type = get_pkt_type(skb);
