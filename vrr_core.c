@@ -30,12 +30,17 @@ int vrr_node_init()
 	}
 	 
         rand_id = 0;
+
+	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
         vrr->vset_size = 4;
         vrr->rtable_value = 0;
-        vrr->version = 1;
-//	vrr->dev_name = "eth1"; //hard coded for now
-	vrr->id = 1;
-	
+        vrr->version = 0x1;
+        vrr->dev_name = "eth1"; //hard coded for now
+        vrr->id = 1;
+
+	//pset_state.lactive[0] = 1;
+
+	err = set_vrr_id(rand_id);
 
 	return 0;
 }
