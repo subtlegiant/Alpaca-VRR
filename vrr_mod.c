@@ -70,8 +70,8 @@ static int __init vrr_init(void)
 
 	VRR_INFO("Begin init");
 
-	vrr_data_init();
 	vrr_node_init();
+	vrr_data_init();
 	pset_state_init();
 
 	err = proto_register(&vrr_proto, 1);
