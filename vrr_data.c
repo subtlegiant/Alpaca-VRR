@@ -6,6 +6,7 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 
 #include <linux/rbtree.h>
 #include <linux/list.h>
+#include <linux/kernel.h>
 #include "vrr.h"
 #include "vrr_data.h"
 
