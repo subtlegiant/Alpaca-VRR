@@ -84,7 +84,7 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 	VRR_DBG("sock %p sk %p len %zu", sock, sk, len);
 
 	/* Pull skb from sk->sk_receive_queue */
-	 skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
+	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
 				flags & MSG_DONTWAIT, &err);
 	if (!skb)
 		goto out;
@@ -98,7 +98,7 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 	err = skb_copy_datagram_iovec(skb, 0, msg->msg_iov, copied);
 	if (err)
 		goto done;
-
+ 
 //	sock_recv_ts_and_drops(msg, sk, skb);
 
 	if (svrr) {
@@ -151,7 +151,7 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	struct sk_buff *skb = NULL;
 	struct sock *sk = sock->sk;
 	struct sockaddr_vrr *addr = (struct sockaddr_vrr *)msg->msg_name;
-	struct vrr_packet *pkt = NULL;
+	struct vrr_packet pkt;
 //	struct vrr_sock *vrr = vrr_sk(sk);
 
 	if (sk->sk_shutdown & SEND_SHUTDOWN) {
@@ -159,43 +159,47 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	}
 
 	err = -ENOBUFS;
-	pkt = (struct vrr_packet *)kmalloc(sizeof(struct vrr_packet),
-					   GFP_KERNEL);
-	if (!pkt)
-		goto out_err;
 
-	pkt->src = get_vrr_id();
-	pkt->dst = addr->svrr_addr;
-	pkt->pkt_type = VRR_DATA;
+	pkt.src = get_vrr_id();
+	pkt.dst = addr->svrr_addr;
+	pkt.pkt_type = VRR_DATA;
+	VRR_ERR("pkt members initialized.");
 
 	lock_sock(sk);
+	VRR_ERR("sock locked.");
 
 	/* Allocate an skb for sending */
-	skb = sock_alloc_send_skb(sk, len + VRR_MAX_HEADER,
-				  flags & MSG_DONTWAIT, &err);
-	if (err)
-		goto out;
-
-	if (!skb)
+	skb = alloc_skb(len + VRR_MAX_HEADER, GFP_KERNEL);
+	if (!skb) {
+		VRR_ERR("alloc_skb failed");
 		goto out_err;
+	}
+	VRR_ERR("alloc_skb succeeded.");
 
 	skb_reserve(skb, VRR_MAX_HEADER);
 
 	/* Build the vrr header */
-	err = build_header(skb, pkt);
-	if (err)
+	err = build_header(skb, &pkt);
+	if (err) {
+		VRR_ERR("build_header failed");
 		goto out;
+	}
+	VRR_ERR("build_header succeeded.");
 
 	/* Copy data from userspace */
 	if (memcpy_fromiovec(skb_put(skb, len), msg->msg_iov, len)) {
+		VRR_ERR("memcpy_fromiovec failed");
 		err = -EFAULT;
 		goto out;
 	}
+	VRR_ERR("memcpy_fromiovec succeeded.");
 
 	sent += len;
 
 	/* Send packet */
 	vrr_output(skb, vrr_get_node(), VRR_DATA);
+
+	VRR_ERR("vrr_output succeeded?");
 
  out:
 	kfree_skb(skb);
@@ -254,7 +258,7 @@ static int vrr_create(struct net *net, struct socket *sock,
 	VRR_DBG("proto: %u", protocol);
 
 	err = -ENOBUFS;
-	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_proto);
+	sk = sk_alloc(net, PF_VRR, GFP_ATOMIC, &vrr_proto);
 	if (!sk)
 		goto out;
 
@@ -269,7 +273,7 @@ static int vrr_create(struct net *net, struct socket *sock,
 	sk->sk_destruct = vrr_sock_destruct;
 	sk->sk_family = PF_VRR;
 	sk->sk_protocol = protocol;
-	sk->sk_allocation = GFP_KERNEL;
+	sk->sk_allocation = GFP_ATOMIC;
 
 	VRR_INFO("End vrr_create");
  out:

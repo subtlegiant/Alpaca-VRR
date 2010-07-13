@@ -109,7 +109,7 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	memcpy(skb_push(skb, sizeof(struct vrr_header)), &header,
 	       sizeof(struct vrr_header));
 
-	return 1;
+	return 0;
 }
 
 int rmv_vrr_header(struct sk_buff *skb)

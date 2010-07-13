@@ -80,8 +80,6 @@ static int __init vrr_init(void)
 	//start hello packet timer
 	tdelay = jiffies + VRR_HPKT_DELAY;
 
-    	mod_timer(&hpkt_timer, tdelay);
-
 	VRR_INFO("Begin init");
 
 	vrr_node_init();
@@ -114,6 +112,8 @@ static int __init vrr_init(void)
 	}
 
 	dev_add_pack(&vrr_packet_type);
+
+    	mod_timer(&hpkt_timer, tdelay);
 
 	VRR_INFO("End init");
 

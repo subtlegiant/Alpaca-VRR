@@ -8,17 +8,20 @@
  */
 int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 {
-
 	struct net_device *dev;
 	struct eth_header header;
 	struct vrr_header *vh;
+	int err = 0;
+
         printk(KERN_ALERT "Output started");
 
 	vh = (struct vrr_header *)skb->data;
 
 	dev = dev_get_by_name(&init_net, "eth2");
         if (dev == 0) {
-		printk(KERN_ALERT "failure in output");
+		VRR_ERR("Device %s does not exist", "eth2");
+		err = -1;
+		goto out;
 	}
         printk(KERN_CRIT "dev initialized");
 
@@ -44,6 +47,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 	dev_queue_xmit(skb);
 
         printk(KERN_CRIT "transmit done");
- 
-	return 0;
+
+ out: 
+	return err;
 }
