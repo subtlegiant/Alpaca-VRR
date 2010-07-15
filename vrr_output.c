@@ -13,7 +13,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 	struct vrr_header *vh;
 	int err = 0;
 
-        printk(KERN_ALERT "Output started");
+        VRR_DBG("Output started");
 
 	vh = (struct vrr_header *)skb->data;
 
@@ -23,7 +23,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 		err = -1;
 		goto out;
 	}
-        printk(KERN_CRIT "dev initialized");
+        VRR_DBG("dev initialized");
 
 	skb->dev = dev;
 
@@ -33,20 +33,20 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 //	else if (type == VRR_DATA)
 //		memcpy(header.dest, vh->dest_mac, MAC_ADDR_LEN);
 
-	printk(KERN_CRIT "header dest added");
+	VRR_DBG("header dest added");
 
 	memcpy(header.source, dev->dev_addr, MAC_ADDR_LEN);
 	header.protocol = htons(ETH_P_VRR);
 
-	printk(KERN_CRIT "header done");
+	VRR_DBG("header done");
 
 	memcpy(skb_push(skb, sizeof(header)), &header, sizeof(header));
 
-	printk(KERN_CRIT "added to skb");
+	VRR_DBG("added to skb");
 
 	dev_queue_xmit(skb);
 
-        printk(KERN_CRIT "transmit done");
+        VRR_DBG("transmit done");
 
  out: 
 	return err;

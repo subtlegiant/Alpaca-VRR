@@ -54,12 +54,12 @@ static void hpkt_timer_tick(unsigned long arg)
 	tdelay = jiffies + VRR_HPKT_DELAY;
 
 	if(send_hpkt() != 0) {
-	    printk(KERN_CRIT "Hello packet was not sent");
+		VRR_DBG("Hello packet was not sent");
 	}
 
 	mod_timer(&hpkt_timer, tdelay);
      
-	printk(KERN_ALERT "Hello packet sent");
+	VRR_DBG("Hello packet sent");
 }
 	
 
