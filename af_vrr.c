@@ -122,7 +122,6 @@ void vrr_destroy_sock(struct sock *sk)
 		if (sk->sk_socket->state != SS_UNCONNECTED)
 			sk->sk_socket->state = SS_DISCONNECTING;
 	}
-	sock_put(sk);
 }
 
 static int vrr_release(struct socket *sock)
