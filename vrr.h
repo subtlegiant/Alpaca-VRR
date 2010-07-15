@@ -146,7 +146,7 @@ static inline struct vrr_sock *vrr_sk(const struct sock *sk)
 
 static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 {
-	struct sk_buff *skb;
+	struct sk_buff *skb = NULL;
 
 	if ((skb = alloc_skb(len + VRR_SKB_RESERVE, how))) {
 		skb_reserve(skb, VRR_SKB_RESERVE);

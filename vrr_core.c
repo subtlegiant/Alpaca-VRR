@@ -218,13 +218,12 @@ int send_hpkt()
 	hpkt->pkt_type = VRR_HELLO;
 	build_header(skb, hpkt);
 	kfree(hpkt);
-        printk(KERN_ALERT "Made it here");
 	vrr_output(skb, vrr, VRR_HELLO);
+	VRR_DBG("hello packet sent!");
 
-     	printk(KERN_ALERT "packet sent");	
 	return 0;
  fail:
-	printk(KERN_DEBUG "hello skb buff failed");
+	VRR_ERR("hello skb buff failed");
 	return -1;
 }
 
