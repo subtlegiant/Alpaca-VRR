@@ -131,9 +131,6 @@ static int vrr_release(struct socket *sock)
 	if (sk) {
 		sock_orphan(sk);
 		sock_hold(sk);
-		lock_sock(sk);
-		vrr_destroy_sock(sk);
-		release_sock(sk);
 		sock_put(sk);
 	}
 
@@ -164,18 +161,13 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	pkt.pkt_type = VRR_DATA;
 	VRR_ERR("pkt members initialized.");
 
-	lock_sock(sk);
-	VRR_ERR("sock locked.");
-
 	/* Allocate an skb for sending */
-	skb = alloc_skb(len + VRR_MAX_HEADER, GFP_KERNEL);
+	skb = vrr_skb_alloc(len + VRR_MAX_HEADER, GFP_KERNEL);
 	if (!skb) {
-		VRR_ERR("alloc_skb failed");
+		VRR_ERR("vrr_skb_alloc failed");
 		goto out_err;
 	}
-	VRR_ERR("alloc_skb succeeded.");
-
-	skb_reserve(skb, VRR_MAX_HEADER);
+	VRR_ERR("vrr_skb_alloc succeeded.");
 
 	/* Build the vrr header */
 	err = build_header(skb, &pkt);
@@ -202,12 +194,8 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 
  out:
 	kfree_skb(skb);
-	release_sock(sk);
-	return sent ? sent : err;
-
  out_err:
-	release_sock(sk);
-	return err;
+	return sent ? sent : err;
 }
 
 static void vrr_sock_destruct(struct sock *sk)
@@ -257,7 +245,7 @@ static int vrr_create(struct net *net, struct socket *sock,
 	VRR_DBG("proto: %u", protocol);
 
 	err = -ENOBUFS;
-	sk = sk_alloc(net, PF_VRR, GFP_ATOMIC, &vrr_proto);
+	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_proto);
 	if (!sk)
 		goto out;
 
@@ -272,7 +260,7 @@ static int vrr_create(struct net *net, struct socket *sock,
 	sk->sk_destruct = vrr_sock_destruct;
 	sk->sk_family = PF_VRR;
 	sk->sk_protocol = protocol;
-	sk->sk_allocation = GFP_ATOMIC;
+	sk->sk_allocation = GFP_KERNEL;
 
 	VRR_INFO("End vrr_create");
  out:
