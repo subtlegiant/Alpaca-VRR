@@ -3,9 +3,8 @@
 #include <linux/module.h>
 #include "vrr.h"
 
-/* this is a hack output function based on Chad's
- * mock module code to test header code.
- */
+
+
 int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 {
 	struct net_device *dev;
