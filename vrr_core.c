@@ -127,17 +127,20 @@ int rmv_vrr_header(struct sk_buff *skb)
 
 /*Check the header for packet type and destination.
   */
-int get_pkt_type(struct sk_buff *skb)
+/* int get_pkt_type(struct sk_buff *skb) */
+/* { */
+/* 	/\*use the offset to access the */
+/* 	 * packet type, return one of the */
+/* 	 * pt macros based on type. If data */
+/* 	 * packet check destination and either */
+/* 	 * forward or process */
+/* 	 *\/ */
 
-{
-	/*use the offset to access the
-	 * packet type, return one of the
-	 * pt macros based on type. If data
-	 * packet check destination and either
-	 * forward or process
-	 */
-	return 1;
-}
+/* 	u8 pkt_type; */
+	
+
+/* 	return pkt_type; */
+/* } */
 
 int set_vrr_id(u_int vrr_id)
 {

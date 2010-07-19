@@ -25,7 +25,7 @@
 
 #define VRR_INFO(fmt, arg...)	printk(KERN_INFO "VRR: " fmt "\n" , ## arg)
 #define VRR_ERR(fmt, arg...)	printk(KERN_ERR "%s: " fmt "\n" , __func__ , ## arg)
-#define VRR_DBG(fmt, arg...)	pr_debug("%s: " fmt "\n" , __func__ , ## arg)
+#define VRR_DBG(fmt, arg...)	printk(KERN_DEBUG "%s: " fmt "\n" , __func__ , ## arg)
 
 #define VRR_HEADER      40	
 #define VRR_MAX_HEADER  VRR_HEADER + 128

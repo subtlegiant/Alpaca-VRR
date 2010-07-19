@@ -8,14 +8,21 @@
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	    struct net_device *orig_dev)
 {
-	int pkt_type;
+	const struct vrr_header *vh = vrr_hdr(skb);
 
 	/* Do stuff! */
 	printk(KERN_ALERT "Received a VRR packet!");
-
-	
-        pkt_type = get_pkt_type(skb);
 	/* skb->pkt_type should be ETH_P_VRR */
+
+	/* Debug vrr header */
+	VRR_INFO("vrr_version: %x", vh->vrr_version);
+	VRR_INFO("pkt_type: %x", vh->pkt_type);
+	VRR_INFO("protocol: %x", vh->protocol);
+	VRR_INFO("data_len: %x", vh->data_len);
+	VRR_INFO("free: %x", vh->free);
+	VRR_INFO("h_csum: %x", vh->h_csum);
+	VRR_INFO("src_id: %x", vh->src_id);
+	VRR_INFO("dest_id: %x", vh->dest_id);
 
 	/*
 	   if (pt == 0) { //Data
