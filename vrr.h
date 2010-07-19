@@ -7,6 +7,7 @@
 #include <linux/socket.h>
 #include <linux/netdevice.h>
 #include <linux/hrtimer.h>
+#include <linux/random.h>
 
 /* PATCH: include/linux/socket.h */
 #define AF_VRR 27
@@ -43,6 +44,7 @@
 #define VRR_DST         0x18
 
 #define VRR_HPKT_DELAY  1000
+#define VRR_ID_LEN	4
 
 #define u8 unsigned char
 #define u16 unsigned short
@@ -62,14 +64,31 @@ struct eth_header {
 };
 
 struct pset_state {
+
+	// arrays holding pset ids
 	int l_active[VRR_PSET_SIZE];
 	int l_not_active[VRR_PSET_SIZE];
 	int pending[VRR_PSET_SIZE];
+ 
+        // arrays holding pset mac addrs mapped
+        // by index to id arrays 
+        mac_addr pending_mac[VRR_PSET_SIZE];
+        mac_addr la_mac[VRR_PSET_SIZE];
+        mac_addr lna_mac[VRR_PSET_SIZE];
 
+        // sizes of id arrays
 	int la_size;
-	int lna_size;
-	int p_size;
-	int total_size;
+        int lna_size;
+        int p_size;
+
+        // size of mac address arrays
+        // used mostly for debug, should 
+        // always be the same size as id
+        // counterparts
+        int lam_size;
+        int lnam_size;
+        int pm_size;  
+
 };
 
 /* Structure describing a VRR socket address. */
@@ -172,5 +191,19 @@ int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
+
+//returns a pointer to the pset l_active array
+int *get_pset_active(void);
+
+//returns the number of bytes in the pset l_active array
+int get_pset_active_size(void);
+
+//returns a pointer to the pset la_mac array:
+//the array of pset link active mac addresses
+mac_addr *get_pset_active_mac(void);
+
+//returns the number of bytes in the pset la_mac array
+int get_pset_active_mac_size(void);
+
 
 #endif	/* _VRR_H */

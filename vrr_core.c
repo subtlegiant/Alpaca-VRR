@@ -2,11 +2,7 @@
 //vrr algorithm
 
 #include <linux/kernel.h>
-#include <linux/kobject.h>
-#include <linux/string.h>
-#include <linux/sysfs.h>
 #include <linux/module.h>
-#include <linux/init.h>
 #include <linux/skbuff.h>
 #include <linux/errno.h>
 #include <linux/mm.h>
@@ -36,9 +32,9 @@ int vrr_node_init()
         vrr->rtable_value = 0;
         vrr->version = 0x1;
         vrr->dev_name = "eth1"; //hard coded for now
-        vrr->id = 1;
-
-	//pset_state.lactive[0] = 1;
+             
+        //generate random id
+        get_random_bytes(&vrr->id, VRR_ID_LEN);   
 
 	return 0;
 }
@@ -49,12 +45,18 @@ int vrr_node_init()
 int pset_state_init()
 {
 	pstate = kmalloc(sizeof(struct pset_state), GFP_KERNEL);
-	pstate->la_size = (sizeof(pstate->l_active) / sizeof(int));
-	pstate->lna_size = (sizeof(pstate->l_not_active) / sizeof(int));
-	pstate->p_size = (sizeof(pstate->pending) / sizeof(int));
-	pstate->total_size = pstate->la_size + pstate->lna_size + pstate->p_size;
+        if(!pstate)
+	    return -ENOMEM;
 
-	return 1;
+	pstate->la_size = 0;
+        pstate->lna_size = 0;
+        pstate->p_size = 0;
+
+        pstate->lam_size = 0;
+        pstate->lnam_size = 0;
+	pstate->pm_size = 0;
+
+	return 0;
 }
 
 int send_setup_msg()
@@ -168,35 +170,6 @@ u_int get_vrr_id()
 
 /*build and send a hello packet */
 
-int send_hpkt()
-{
-	struct sk_buff *skb;
-	struct vrr_packet *hpkt;
-	int data_size, i;
-  	int *hpkt_data;
-
-	hpkt = kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
-
-	data_size = pstate->total_size;
-        hpkt_data = (int*)
-		kmalloc((data_size + 3) * sizeof(int), GFP_KERNEL);
-	
-	for (i = 0; i < pstate->la_size; ++i) {
-		hpkt_data[i] = pstate->l_active[i];
-	}
-	//add delimiter
-	hpkt_data[i + 1] = 0;
-	for (i = 0; i < pstate->lna_size; ++i) {
-		hpkt_data[i] = pstate->l_not_active[i];
-	}
-	//add delimiter
-	hpkt_data[i + 1] = 0;
-	for (i = 0; i < pstate->p_size; ++i) {
-		hpkt_data[i] = pstate->pending[i];
-	}
-	//add delimiter
-	hpkt_data[i + 1] = 0;
-
 	/* Creates an sk_buff. Stuffs with
 	 * vrr related info...
 	 * hello packet payload consists of the arrays
@@ -205,6 +178,43 @@ int send_hpkt()
 	 * header which wraps the header around
 	 * packet. Pass to vrr_output
 	 */
+
+
+int send_hpkt()
+{
+	struct sk_buff *skb;
+	struct vrr_packet *hpkt;
+	int data_size, i;
+  	int *hpkt_data;
+
+        data_size = pstate->la_size + 
+                    pstate->lna_size + 
+                    pstate->p_size;
+
+	hpkt = kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
+
+	//total bytes of all arrays + 3 ints
+        hpkt_data = (int*)
+		kmalloc((data_size + 3) * sizeof(int), GFP_KERNEL);
+       
+	for (i = 1; i < pstate->la_size; ++i) {
+		hpkt_data[i] = pstate->l_active[i];
+	}
+	//add size of link active set
+	hpkt_data[0] = pstate->la_size;
+
+	for (i = 1; i < pstate->lna_size; ++i) {
+		hpkt_data[i] = pstate->l_not_active[i];
+	}
+	//add size of link not active set
+	hpkt_data[0] = pstate->lna_size;
+
+	for (i = 1; i < pstate->p_size; ++i) {
+		hpkt_data[i] = pstate->pending[i];
+	}
+	//add size of pstate pending set
+	hpkt_data[0] = pstate->p_size;
+
 	skb = vrr_skb_alloc(sizeof(hpkt_data), GFP_KERNEL);
 	if (skb) {
 		memcpy(skb_put(skb, sizeof(hpkt_data)), hpkt_data,
@@ -228,6 +238,28 @@ int send_hpkt()
 	return -1;
 }
 
+int *get_pset_active()
+{
+	return pstate->l_active;
+}
+
+
+int get_pset_active_size()
+{
+	return pstate->la_size * sizeof(int); 
+}
+
+mac_addr *get_pset_active_mac()
+{
+	return pstate->la_mac;
+}
+
+int get_pset_active_mac_size()
+{
+	return pstate->lam_size * sizeof(mac_addr);
+}
+
+
 struct vrr_node* vrr_get_node()
 {
  	return vrr;
@@ -236,12 +268,12 @@ struct vrr_node* vrr_get_node()
 /*build and send a setup request*/
 int send_setup_req()
 {
-//	struct sk_buff *skb;
-//	struct vrr_packet *set_req;
-//	set_req->pkt_type = VRR_SETUP;
-//	build_header(skb, set_req);
-//	vrr_output(skb, VRR_SETUP_REQ);
- 	
+	//struct sk_buff *skb;
+	//struct vrr_packet *set_req;
+	//set_req->pkt_type = VRR_SETUP;
+	//build_header(skb, set_req);
+	//vrr_output(skb, VRR_SETUP_REQ);
+
 	return 1;
 
 }

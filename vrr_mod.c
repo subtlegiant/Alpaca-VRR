@@ -34,10 +34,72 @@ static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
 	return sprintf(buf, "%d", value);
 }
 
-static struct kobj_attribute vrr_attr = __ATTR(id, 0666, id_show, NULL);
+static ssize_t pset_active_show(struct kobject *kobj, 
+ 				struct kobj_attribute *attr,
+				char *buf)
+{
+	int *pset_a;
+        mac_addr *pset_a_mac;
+        int pset_a_size, pset_a_mac_size;
+	int i;
+        int buf_size;
+        int pset_a_len;
+        char *temp_buf;
+
+	pset_a = get_pset_active();
+	pset_a_size = get_pset_active_size();
+        pset_a_mac = get_pset_active_mac();
+        pset_a_mac_size = get_pset_active_mac_size();
+        buf_size = pset_a_size + pset_a_mac_size + 3;
+        pset_a_len = pset_a_size/sizeof(int);
+        temp_buf = kmalloc(buf_size, GFP_KERNEL);
+
+        if (!temp_buf) 
+	    goto nem; //not enough memory
+
+        // each mac address is mapped to a pset id by
+        // index, therefore they should and have to be
+        // the same size
+        if ((pset_a_mac_size/sizeof(mac_addr)) != 
+             pset_a_len) 
+	    goto exit;
+
+        for (i=0; i<pset_a_len; ++i) {
+	    sprintf(temp_buf, "%d %02x:%02x:%02x:%02x:%02x:%02x\n",
+		(int)*(pset_a),
+		(*pset_a_mac)[0],
+		(*pset_a_mac)[1],
+		(*pset_a_mac)[2],
+		(*pset_a_mac)[3],
+		(*pset_a_mac)[4],
+		(*pset_a_mac)[5]);
+            ++pset_a;
+            ++pset_a_mac;
+            buf = strncat(buf, temp_buf, buf_size);
+        }
+        
+	kfree(temp_buf);
+	return pset_a_len * buf_size;
+exit:
+	kfree(temp_buf);
+        VRR_DBG("Pset mac and id arrays unequal size: BAD!");
+        return -1;
+
+nem:
+ 	return -ENOMEM;
+}
+			       
+
+static struct kobj_attribute id_attr =
+	 __ATTR(id, 0666, id_show, NULL);
+static struct kobj_attribute pset_active_attr = 
+         __ATTR(pset_active, 0666, pset_active_show, NULL);
+
+
 
 static struct attribute *attrs[] = {
-	&vrr_attr.attr,
+	&id_attr.attr,
+        &pset_active_attr.attr,
 	NULL,
 };
 
@@ -132,7 +194,7 @@ static void __exit vrr_exit(void)
 	proto_unregister(&vrr_proto);
 }
 
-MODULE_AUTHOR("Cameron Kidd <cameronk@cs.pdx.edu>");
+MODULE_AUTHOR("Team Alpaca");
 MODULE_DESCRIPTION("Core for Virtual Ring Routing Protocol");
 MODULE_LICENSE("GPL");
 
