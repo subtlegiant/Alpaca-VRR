@@ -5,10 +5,50 @@
 
 //static int vrr_active = 0;	//Activates after first route successfully set up
 
+static int vrr_rcv_data(struct sk_buff *skb, const struct vrr_header *vh)
+{
+	return 0;
+}
+
+static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
+{
+	return 0;
+}
+
+static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
+{
+	return 0;
+}
+
+static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
+{
+	return 0;
+}
+
+static int vrr_rcv_setup_fail(struct sk_buff *skb, const struct vrr_header *vh) 
+{
+	return 0;
+}
+
+static int vrr_rcv_teardown(struct sk_buff *skb, const struct vrr_header *vh) 
+{
+	return 0;
+}
+
+static int (*vrr_rcvfunc[6])(struct sk_buff *, const struct vrr_header *) = {
+	&vrr_rcv_data,
+	&vrr_rcv_hello,
+	&vrr_rcv_setup_req,
+	&vrr_rcv_setup,
+	&vrr_rcv_setup_fail,
+	&vrr_rcv_teardown
+};
+
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	    struct net_device *orig_dev)
 {
 	const struct vrr_header *vh = vrr_hdr(skb);
+	int err;
 
 	/* Do stuff! */
 	printk(KERN_ALERT "Received a VRR packet!");
@@ -23,6 +63,31 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	VRR_INFO("h_csum: %x", vh->h_csum);
 	VRR_INFO("src_id: %x", vh->src_id);
 	VRR_INFO("dest_id: %x", vh->dest_id);
+
+	if (vh->pkt_type == VRR_DATA) {
+		VRR_DBG("Packet type: VRR_DATA");
+	} else if (vh->pkt_type == VRR_HELLO) {
+		VRR_DBG("Packet type: VRR_HELLO");
+	} else if (vh->pkt_type == VRR_SETUP_REQ) {
+		VRR_DBG("Packet type: VRR_SETUP_REQ");
+	} else if (vh->pkt_type == VRR_SETUP) {
+		VRR_DBG("Packet type: VRR_SETUP");
+	} else if (vh->pkt_type == VRR_SETUP_FAIL) {
+		VRR_DBG("Packet type: VRR_SETUP_FAIL");
+	} else if (vh->pkt_type == VRR_TEARDOWN) {
+		VRR_DBG("Packet type: VRR_TEARDOWN");
+	} else {
+		VRR_ERR("Unknown pkt_type: %x", vh->pkt_type);
+		kfree_skb(skb);
+		return NET_RX_DROP;
+	}
+
+	err = (*vrr_rcvfunc[vh->pkt_type])(skb, vh);
+	if (err) {
+		VRR_ERR("Error in rcv func.");
+		kfree_skb(skb);
+		return NET_RX_DROP;
+	}
 
 	/*
 	   if (pt == 0) { //Data
