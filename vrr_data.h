@@ -1,10 +1,19 @@
-#include "vrr.h"
+#ifndef _VRR_DATA_H
+#define _VRR_DATA_H
 
-#define PSET_LINKED	1
-#define PSET_PENDING	2
-#define PSET_FAILED	3
-#define PSET_UNKWOWN	4
+#define PSET_LINKED	0
+#define PSET_PENDING	1
+#define PSET_FAILED	2
+#define PSET_UNKNOWN	3
 
+//Struct for use in VRR Routing Table
+typedef struct routing_table_entry {
+	u_int ea;		//endpoint A
+	u_int eb;		//endpoint B
+	u_int na;		//next A
+	u_int nb;		//next B
+	int path_id;		//Path ID
+} rt_entry;
 
 /*
  * Routes, Pset, and Vset initialization
@@ -30,12 +39,13 @@ int rt_remove_nexts(u_int route_hop_to_remove);
  *	0 on failure
  * pset_remove : Remove a node from the physical set.  Returns 1 on success,
  *	0 on failure
- * pset_get_status : Gets current status of physical node.  Returns status
+ * pset_get_status : Gets current status of physical node.  Returns status or
+ *	PSET_UNKNOWN
  * pset_get_mac: Gets current status of physical node.  Uses the passed pointer
  *	to mac for the data.
  * pset_update_status : Updates node with a new status.
  */
-int pset_add(u_int node, u_int status, mac_addr mac);
+int pset_add(u_int node, u_int status, const mac_addr mac);
 int pset_remove(u_int node);
 u_int pset_get_status(u_int node);
 void pset_get_mac(u_int node, mac_addr * mac);
@@ -52,3 +62,5 @@ int pset_update_status(u_int node, u_int new_status);
 int vset_add(u_int node);
 int vset_remove(u_int node);
 int vset_get_all(u_int * vset_all);
+
+#endif	/* _VRR_DATA_H */

@@ -142,7 +142,6 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 {
 //	int addr_len = msg->msg_namelen;
 	int err = 0;
-	int flags = msg->msg_flags;
 	size_t sent = 0;
 	struct sk_buff *skb = NULL;
 	struct sock *sk = sock->sk;

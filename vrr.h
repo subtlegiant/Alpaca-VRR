@@ -22,6 +22,7 @@
 #define VRR_SETUP   	0x3
 #define VRR_SETUP_FAIL  0x4
 #define VRR_TEARDOWN    0x5
+#define VRR_NPTYPES	6
 
 #define VRR_INFO(fmt, arg...)	printk(KERN_INFO "VRR: " fmt "\n" , ## arg)
 #define VRR_ERR(fmt, arg...)	printk(KERN_ERR "%s: " fmt "\n" , __func__ , ## arg)
@@ -56,19 +57,23 @@ typedef unsigned char mac_addr[MAC_ADDR_LEN];
 extern struct net init_net;
 
 struct eth_header {
-
     mac_addr dest;
     mac_addr source;
     u16 protocol;
-
 };
 
+/* We need to be explicit on the size of these fields, since 'int'
+   varies depending on architecture. -tad */
 struct pset_state {
+	/* Shouldn't we be using linked lists here? We're going to be
+	 * adding/removing to these arrays quite a bit, and we'll need
+	 * to deal with shifting / bounds issues. -tad */
 
 	// arrays holding pset ids
 	int l_active[VRR_PSET_SIZE];
 	int l_not_active[VRR_PSET_SIZE];
 	int pending[VRR_PSET_SIZE];
+	int failed[VRR_PSET_SIZE];
  
         // arrays holding pset mac addrs mapped
         // by index to id arrays 
@@ -80,6 +85,7 @@ struct pset_state {
 	int la_size;
         int lna_size;
         int p_size;
+	int f_size;
 
         // size of mac address arrays
         // used mostly for debug, should 
@@ -88,7 +94,6 @@ struct pset_state {
         int lam_size;
         int lnam_size;
         int pm_size;  
-
 };
 
 /* Structure describing a VRR socket address. */
@@ -110,6 +115,7 @@ struct vrr_node {
 	int rtable_value; //the size of the virtual neighborhood
 	u8 version;
         char *dev_name;
+	int active;
 	//*rt = //pointer to the routing table
 	//*vset = //pointer to vset structure
 	//*pset = //pointer to a pset structure that maintains
@@ -146,17 +152,6 @@ static inline struct vrr_header *vrr_hdr(const struct sk_buff *skb)
         /* skb_network_header returns skb->head + skb->network_header */
         return (struct vrr_header *)skb_network_header(skb);
 }
-
-//Struct for use in VRR Routing Table
-typedef struct routing_table_entry {
-	u_int ea;		//endpoint A
-	u_int eb;		//endpoint B
-	u_int na;		//next A
-	u_int nb;		//next B
-	int path_id;		//Path ID
-} rt_entry;
-
-
 
 static inline struct vrr_sock *vrr_sk(const struct sock *sk)
 {

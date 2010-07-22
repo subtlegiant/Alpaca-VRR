@@ -196,7 +196,7 @@ int rt_remove_nexts(u_int route_hop_to_remove)  //TODO: code this
 /*
  * Physical set functions
  */
-int pset_add(u_int node, u_int status, unsigned char mac[MAC_ADDR_LEN])
+int pset_add(u_int node, u_int status, const unsigned char mac[MAC_ADDR_LEN])
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
@@ -249,7 +249,7 @@ u_int pset_get_status(u_int node)
 			return tmp->status;
 		}
 	}
-	return 0;
+	return PSET_UNKNOWN;
 }
 
 int pset_update_status(u_int node, u_int newstatus)

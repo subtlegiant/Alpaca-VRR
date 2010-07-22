@@ -32,6 +32,7 @@ int vrr_node_init()
         vrr->rtable_value = 0;
         vrr->version = 0x1;
         vrr->dev_name = "eth1"; //hard coded for now
+	vrr->active = 0;
              
         //generate random id
         get_random_bytes(&vrr->id, VRR_ID_LEN);   
@@ -51,6 +52,7 @@ int pset_state_init()
 	pstate->la_size = 0;
         pstate->lna_size = 0;
         pstate->p_size = 0;
+	pstate->f_size = 0;
 
         pstate->lam_size = 0;
         pstate->lnam_size = 0;
@@ -182,12 +184,11 @@ u_int get_vrr_id()
 	 * packet. Pass to vrr_output
 	 */
 
-
 int send_hpkt()
 {
 	struct sk_buff *skb;
 	struct vrr_packet *hpkt;
-	int data_size, i;
+	int data_size, i = 0, p = 0;
   	int *hpkt_data;
 
         data_size = pstate->la_size + 
@@ -196,27 +197,33 @@ int send_hpkt()
 
 	hpkt = kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
 
-	//total bytes of all arrays + 3 ints
+	//total bytes of all arrays + 4 ints
         hpkt_data = (int*)
-		kmalloc((data_size + 3) * sizeof(int), GFP_KERNEL);
-       
-	for (i = 1; i < pstate->la_size; ++i) {
-		hpkt_data[i] = pstate->l_active[i];
-	}
+		kmalloc((data_size + 4) * sizeof(int), GFP_KERNEL);
+
+	/* Add the "active" flag */
+	hpkt_data[p++] = vrr->active;
+
 	//add size of link active set
-	hpkt_data[0] = pstate->la_size;
-
-	for (i = 1; i < pstate->lna_size; ++i) {
-		hpkt_data[i] = pstate->l_not_active[i];
+	hpkt_data[p++] = pstate->la_size;
+       
+	for (i = 0; i < pstate->la_size; ++i) {
+		hpkt_data[p++] = pstate->l_active[i];
 	}
+
 	//add size of link not active set
-	hpkt_data[0] = pstate->lna_size;
+	hpkt_data[p++] = pstate->lna_size;
 
-	for (i = 1; i < pstate->p_size; ++i) {
-		hpkt_data[i] = pstate->pending[i];
+	for (i = 0; i < pstate->lna_size; ++i) {
+		hpkt_data[p++] = pstate->l_not_active[i];
 	}
+
 	//add size of pstate pending set
-	hpkt_data[0] = pstate->p_size;
+	hpkt_data[p++] = pstate->p_size;
+
+	for (i = 0; i < pstate->p_size; ++i) {
+		hpkt_data[p++] = pstate->pending[i];
+	}
 
 	skb = vrr_skb_alloc(sizeof(hpkt_data), GFP_KERNEL);
 	if (skb) {
