@@ -275,6 +275,27 @@ void pset_get_mac(u_int node, mac_addr * mac)
         }
 }
 
+int pset_inc_fail_count(struct pset_list *node)
+{
+        atomic_inc(&node->fail_count);
+        return atomic_read(&node->fail_count);
+}
+
+int pset_reset_fail_count(u_int node)
+{
+        pset_list_t *tmp;
+        struct list_head *pos;
+
+        list_for_each(pos, &pset.list) {
+                tmp = list_entry(pos, pset_list_t, list);
+                if (tmp->node == node) {
+                        atomic_set(&tmp->fail_count, 0);
+                        return 0;
+                }
+        }
+        return -1;
+}
+
 struct list_head *pset_head()
 {
         return &pset.list;

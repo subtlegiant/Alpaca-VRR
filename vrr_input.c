@@ -12,6 +12,10 @@
 #define TRANS_PENDING	1
 #define TRANS_MISSING	2
 
+/* Name arrays for easy state-machine debugging */
+static char *pset_states[4] = {"linked", "pending", "failed", "unknown"};
+static char *pset_trans[3] = {"linked", "pending", "missing"};
+
 int hello_trans[4][3] = {
 	/* linked	pending		missing */
 	{PSET_LINKED,	PSET_LINKED,	PSET_FAILED},	/* linked */
@@ -122,13 +126,15 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 
 	next_state = hello_trans[cur_state][trans];
 
-	VRR_DBG("cur_state: %x", cur_state);
-	VRR_DBG("next_state: %x", next_state);
+	VRR_DBG("cur_state: %s", pset_states[cur_state]);
+        VRR_DBG("transition: %s", pset_trans[trans]);
+	VRR_DBG("next_state: %s", pset_states[next_state]);
 
 	if (cur_state == PSET_UNKNOWN)
 		pset_add(ntohl(vh->src_id), src_addr, next_state, active);
 	else
 		pset_update_status(ntohl(vh->src_id), next_state, active);
+        pset_reset_fail_count(ntohl(vh->src_id));
 
         /* Update pset state cache */
         pset_state_update();

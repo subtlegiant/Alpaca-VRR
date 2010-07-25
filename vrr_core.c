@@ -95,6 +95,27 @@ void pset_state_update()
         pstate->p_size = pstate->pm_size = p_i;
 }
 
+void detect_failures() {
+        pset_list_t *tmp;
+        struct list_head *pos, *q;
+        u_int count, status;
+        
+        list_for_each_safe(pos, q, pset_head()) {
+                tmp = list_entry(pos, pset_list_t, list);
+                status = tmp->status;
+                count = pset_inc_fail_count(tmp);
+                if (count >= VRR_FAIL_FACTOR && status != PSET_FAILED) {
+                        VRR_DBG("Marking failed node: %x", tmp->node);
+                        tmp->status = PSET_FAILED;
+                }
+                if (count >= 2 * VRR_FAIL_FACTOR) {
+                        VRR_DBG("Deleting failed node: %x", tmp->node);
+                        list_del(pos);
+                        kfree(tmp);
+                }
+        }
+}
+
 int send_setup_msg()
 {
 	return 1;

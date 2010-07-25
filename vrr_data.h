@@ -1,6 +1,8 @@
 #ifndef _VRR_DATA_H
 #define _VRR_DATA_H
 
+#include <linux/types.h>
+
 #define PSET_LINKED	0
 #define PSET_PENDING	1
 #define PSET_FAILED	2
@@ -22,6 +24,7 @@ typedef struct pset_list {
 	u_int			status;
         u_int			active;
 	mac_addr		mac;
+        atomic_t		fail_count;
 } pset_list_t;
 
 /*
@@ -59,6 +62,8 @@ int pset_remove(u_int node);
 u_int pset_get_status(u_int node);
 void pset_get_mac(u_int node, mac_addr * mac);
 int pset_update_status(u_int node, u_int new_status, u_int active);
+int pset_inc_fail_count(struct pset_list *node);
+int pset_reset_fail_count(u_int node);
 struct list_head *pset_head(void);
 
 /* Functions for virtual set of nodes

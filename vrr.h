@@ -46,7 +46,8 @@
 #define VRR_SRC         0x10
 #define VRR_DST         0x18
 
-#define VRR_HPKT_DELAY  1000
+#define VRR_HPKT_DELAY  5000    /* milliseconds */
+#define VRR_FAIL_FACTOR	4       /* multiple of delay to mark failed nodes */
 #define VRR_ID_LEN	4
 
 #define u8 unsigned char
@@ -201,6 +202,8 @@ mac_addr *get_pset_active_mac(void);
 int get_pset_active_mac_size(void);
 
 void pset_state_update(void);
+
+void detect_failures(void);
 
 
 #endif	/* _VRR_H */
