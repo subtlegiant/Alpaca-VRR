@@ -27,14 +27,6 @@ typedef struct rt_node {
 
 static struct rb_root rt_root;
 
-//Physical Set Setup
-typedef struct pset_list {
-	struct list_head	list;
-	u_int			node;
-	u_int			status;
-	mac_addr		mac;
-} pset_list_t;
-
 static int pset_size = 0;
 static pset_list_t pset;
 
@@ -196,7 +188,8 @@ int rt_remove_nexts(u_int route_hop_to_remove)  //TODO: code this
 /*
  * Physical set functions
  */
-int pset_add(u_int node, u_int status, const unsigned char mac[MAC_ADDR_LEN])
+int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
+             u_int active)
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
@@ -209,10 +202,11 @@ int pset_add(u_int node, u_int status, const unsigned char mac[MAC_ADDR_LEN])
 	}
 
 
-	tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_KERNEL);
+	tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_ATOMIC);
 
 	tmp->node = node;
         tmp->status = status;
+        tmp->active = active ? 1 : 0;
         memcpy(tmp->mac, mac, sizeof(mac_addr));
 
 	list_add(&(tmp->list), &(pset.list));
@@ -252,7 +246,7 @@ u_int pset_get_status(u_int node)
 	return PSET_UNKNOWN;
 }
 
-int pset_update_status(u_int node, u_int newstatus)
+int pset_update_status(u_int node, u_int newstatus, u_int active)
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
@@ -261,6 +255,7 @@ int pset_update_status(u_int node, u_int newstatus)
 		tmp= list_entry(pos, pset_list_t, list);
 		if (tmp->node == node) {
 			tmp->status = newstatus;
+                        tmp->active = active ? 1 : 0;
 			return 1;
 		}
 	}
@@ -280,11 +275,10 @@ void pset_get_mac(u_int node, mac_addr * mac)
         }
 }
 
-
-
-
-
-
+struct list_head *pset_head()
+{
+        return &pset.list;
+}
 
 /*
  * Virtual set functions

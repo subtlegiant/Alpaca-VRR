@@ -8,6 +8,7 @@
 #include <linux/mm.h>
 
 #include "vrr.h"
+#include "vrr_data.h"
 
 struct vrr_node *vrr;
 struct pset_state *pstate;
@@ -52,13 +53,46 @@ int pset_state_init()
 	pstate->la_size = 0;
         pstate->lna_size = 0;
         pstate->p_size = 0;
-	pstate->f_size = 0;
 
         pstate->lam_size = 0;
         pstate->lnam_size = 0;
 	pstate->pm_size = 0;
 
 	return 0;
+}
+
+void pset_state_update()
+{
+        pset_list_t *p;
+        struct list_head *pos;
+        int i, la_i = 0, lna_i = 0, p_i = 0;
+        
+
+        list_for_each(pos, pset_head()) {
+                p = list_entry(pos, pset_list_t, list);
+                if (p->status == PSET_LINKED) {
+                        if (p->active) {
+                                pstate->l_active[la_i] = p->node;
+                                for (i = 0; i < ETH_ALEN; i++)
+                                        pstate->la_mac[la_i][i] = p->mac[i];
+                                la_i++;
+                        } else {
+                                pstate->l_not_active[lna_i] = p->node;
+                                for (i = 0; i < ETH_ALEN; i++)
+                                        pstate->lna_mac[lna_i][i] = p->mac[i];
+                                lna_i++;
+                        }
+                }
+                else if (p->status == PSET_PENDING) {
+                        pstate->pending[p_i] = p->node;
+                        for (i = 0; i < ETH_ALEN; i++)
+                                pstate->pending_mac[p_i][i] = p->mac[i];
+                        p_i++;
+                }
+        }
+        pstate->la_size = pstate->lam_size = la_i;
+        pstate->lna_size = pstate->lnam_size = lna_i;
+        pstate->p_size = pstate->pm_size = p_i;
 }
 
 int send_setup_msg()
@@ -91,21 +125,20 @@ int send_setup_msg()
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 {
 	struct vrr_header header;
-	int mac_addr_len, i;
+	int i;
 
 	header.vrr_version = vrr->version;
 	header.pkt_type = vpkt->pkt_type;
-	header.protocol = 27;
-	header.data_len = vpkt->data_len;
+	header.protocol = htons(PF_VRR);
+	header.data_len = htons(vpkt->data_len);
 	header.free = 0;
 	header.h_csum = 0;
-	header.src_id = vrr->id;
-	header.dest_id = vpkt->dst;
+	header.src_id = htonl(vrr->id);
+	header.dest_id = htonl(vpkt->dst);
 
-	mac_addr_len = 6;
 	//determine what kind of header
 	if (vpkt->pkt_type == VRR_HELLO) {
-		for (i = 0; i < mac_addr_len; ++i) {
+		for (i = 0; i < ETH_ALEN; ++i) {
 			header.dest_mac[i] = 0xff;
 		}
 	}
@@ -183,67 +216,68 @@ u_int get_vrr_id()
 	 * header which wraps the header around
 	 * packet. Pass to vrr_output
 	 */
-
 int send_hpkt()
 {
 	struct sk_buff *skb;
-	struct vrr_packet *hpkt;
+	struct vrr_packet hpkt;
 	int data_size, i = 0, p = 0;
-  	int *hpkt_data;
+  	u_int *hpkt_data;
 
-        data_size = pstate->la_size + 
-                    pstate->lna_size + 
-                    pstate->p_size;
+        WARN_ATOMIC;
 
-	hpkt = kmalloc(sizeof(struct vrr_packet), GFP_KERNEL);
+        VRR_DBG("My ID: %x", vrr->id);
 
-	//total bytes of all arrays + 4 ints
-        hpkt_data = (int*)
-		kmalloc((data_size + 4) * sizeof(int), GFP_KERNEL);
+        data_size = sizeof(u_int) * (pstate->la_size + 
+                                     pstate->lna_size + 
+                                     pstate->p_size + 4);
 
-	/* Add the "active" flag */
-	hpkt_data[p++] = vrr->active;
+        hpkt_data = (u_int *) kmalloc(data_size, GFP_KERNEL);
 
-	//add size of link active set
-	hpkt_data[p++] = pstate->la_size;
-       
+        VRR_DBG("vrr->active: %x", vrr->active);
+	hpkt_data[p++] = htonl(vrr->active);
+
+        VRR_DBG("pstate->la_size: %x", pstate->la_size);
+	hpkt_data[p++] = htonl(pstate->la_size);
+
+        VRR_DBG("pstate->lna_size: %x", pstate->lna_size);
+	hpkt_data[p++] = htonl(pstate->lna_size);
+
+        VRR_DBG("pstate->p_size: %x", pstate->p_size);
+	hpkt_data[p++] = htonl(pstate->p_size);
+
 	for (i = 0; i < pstate->la_size; ++i) {
-		hpkt_data[p++] = pstate->l_active[i];
+                VRR_DBG("pstate->l_active[%x]: %x", i, pstate->l_active[i]);
+                hpkt_data[p++] = htonl(pstate->l_active[i]);
 	}
-
-	//add size of link not active set
-	hpkt_data[p++] = pstate->lna_size;
 
 	for (i = 0; i < pstate->lna_size; ++i) {
-		hpkt_data[p++] = pstate->l_not_active[i];
+                VRR_DBG("pstate->l_not_active[%x]: %x", i, pstate->l_not_active[i]);
+                hpkt_data[p++] = htonl(pstate->l_not_active[i]);
 	}
-
-	//add size of pstate pending set
-	hpkt_data[p++] = pstate->p_size;
 
 	for (i = 0; i < pstate->p_size; ++i) {
-		hpkt_data[p++] = pstate->pending[i];
+                VRR_DBG("pstate->pending[%x]: %x", i, pstate->pending[i]);
+                hpkt_data[p++] = htonl(pstate->pending[i]);
 	}
 
-	skb = vrr_skb_alloc(sizeof(hpkt_data), GFP_KERNEL);
-	if (skb) {
-		memcpy(skb_put(skb, sizeof(hpkt_data)), hpkt_data,
-		       sizeof(hpkt_data));
-	} else
+	skb = vrr_skb_alloc(data_size, GFP_KERNEL);
+	if (skb)
+                memcpy(skb_put(skb, data_size), hpkt_data, data_size);
+        else
 		goto fail;
 
-	hpkt->src = vrr->id;
-	hpkt->dst = 0;		//broadcast hello packet
-	hpkt->data_len= sizeof(hpkt_data);	//already in sk_buff
-	hpkt->pkt_type = VRR_HELLO;
-	build_header(skb, hpkt);
-	kfree(hpkt);
-	vrr_output(skb, vrr, VRR_HELLO);
-	VRR_DBG("hello packet sent!");
+	hpkt.src = vrr->id;
+	hpkt.dst = 0;                      /* broadcast addr */
+	hpkt.data_len = data_size;
+	hpkt.pkt_type = VRR_HELLO;
+	build_header(skb, &hpkt);
+	vrr_output(skb, vrr_get_node(), VRR_HELLO);
 
+        kfree(hpkt_data);
 	return 0;
  fail:
 	VRR_ERR("hello skb buff failed");
+        kfree(hpkt_data);
 	return -1;
 }
 

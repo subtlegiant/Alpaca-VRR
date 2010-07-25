@@ -1,3 +1,4 @@
+#include <linux/if_ether.h>
 #include <linux/kernel.h>
 #include <linux/skbuff.h>
 #include <linux/netdevice.h>
@@ -12,14 +13,13 @@
 #define TRANS_MISSING	2
 
 int hello_trans[4][3] = {
-	/* linked     pending      missing */
-	{PSET_LINKED, PSET_LINKED, PSET_FAILED},   /* linked */
-	{PSET_LINKED, PSET_LINKED, PSET_PENDING},  /* pending */
-	{PSET_FAILED, PSET_PENDING, PSET_PENDING}, /* failed */
-	{PSET_FAILED, PSET_LINKED, PSET_PENDING}}; /* unknown */
+	/* linked	pending		missing */
+	{PSET_LINKED,	PSET_LINKED,	PSET_FAILED},	/* linked */
+	{PSET_LINKED,	PSET_LINKED,	PSET_PENDING},	/* pending */
+	{PSET_FAILED,	PSET_PENDING,	PSET_PENDING},	/* failed */
+	{PSET_FAILED,	PSET_LINKED,	PSET_PENDING}};	/* unknown */
 
-static int vrr_rcv_data(struct sk_buff *skb, const struct ethhdr *eth, 
-			const struct vrr_header *vh)
+static int vrr_rcv_data(struct sk_buff *skb, const struct vrr_header *vh)
 {
 	/* u_int nh = NextHop(rt, dst)          //find next hop */
 	/* if nh == 0 */
@@ -32,69 +32,93 @@ static int vrr_rcv_data(struct sk_buff *skb, const struct ethhdr *eth,
 	return 0;
 }
 
-static int vrr_rcv_hello(struct sk_buff *skb, const struct ethhdr *eth,
-			 const struct vrr_header *vh)
+static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 {
 	int active;
 	u_int la_size, lna_size, p_size, i;
 	u_int la[VRR_PSET_SIZE], lna[VRR_PSET_SIZE], p[VRR_PSET_SIZE];
-	int offset = sizeof(struct vrr_header);
+	size_t offset = sizeof(struct vrr_header);
+        size_t step = sizeof(u_int);
 	int trans = TRANS_MISSING;
 	int cur_state = pset_get_status(vh->src_id);
 	int next_state;
 	int me = get_vrr_id();
-	
+        unsigned char src_addr[ETH_ALEN];
+
 	VRR_DBG("Packet type: VRR_HELLO");
 
-	/* Debug hello payload */
+        eth_header_parse(skb, src_addr);
 
-	/* Get the sender's "active" flag */
-	skb_copy_bits(skb, offset, &active, sizeof(u_int));
+	skb_copy_bits(skb, offset, &active, step);
+        active = ntohl(active);
+        offset += step;
 	VRR_DBG("Sender active: %x", active);
 
-	/* Linked & active set */
-	offset += sizeof(u_int);
-	skb_copy_bits(skb, offset, &la_size, sizeof(u_int));
+	skb_copy_bits(skb, offset, &la_size, step);
+        la_size = ntohl(la_size);
+        offset += step;
 	VRR_DBG("la_size: %x", la_size);
+        if (la_size > VRR_PSET_SIZE) {
+                VRR_DBG("Invalid la_size: %x. Dropping packet.", la_size);
+                return -1;
+        }
 
-	for (i = 0; i < la_size; i++) {
-		offset += sizeof(u_int);
-		skb_copy_bits(skb, offset, &la[i], sizeof(u_int));
-		VRR_DBG("la[%x] = %x", i, la[i]);
-		if (la[i] == me)
-			trans = TRANS_LINKED;
-	}
-
-	/* Linked & not active set */
-	offset += sizeof(u_int);
-	skb_copy_bits(skb, offset, &lna_size, sizeof(u_int));
+	skb_copy_bits(skb, offset, &lna_size, step);
+        lna_size = ntohl(lna_size);
+        offset += step;
 	VRR_DBG("lna_size: %x", lna_size);
+        if (lna_size > VRR_PSET_SIZE) {
+                VRR_DBG("Invalid lna_size: %x. Dropping packet.", lna_size);
+                return -1;
+        }
 
-	for (i = 0; i < lna_size; i++) {
-		offset += sizeof(u_int);
-		skb_copy_bits(skb, offset, &lna[i], sizeof(u_int));
-		VRR_DBG("lna[%x] = %x", i, lna[i]);
-		if (lna[i] == me)
-			trans = TRANS_LINKED;
-	}
-
-	/* Pending set */
-	offset += sizeof(u_int);
-	skb_copy_bits(skb, offset, &p_size, sizeof(u_int));
+	skb_copy_bits(skb, offset, &p_size, step);
+        p_size = ntohl(p_size);
+        offset += step;
 	VRR_DBG("p_size: %x", p_size);
+        if (p_size > VRR_PSET_SIZE) {
+                VRR_DBG("Invalid p_size: %x. Dropping packet.", p_size);
+                return -1;
+        }
 
-	for (i = 0; i < p_size; i++) {
-		offset += sizeof(u_int);
-		skb_copy_bits(skb, offset, &p[i], sizeof(u_int));
-		VRR_DBG("p[%x] = %x", i, p[i]);
-		if (p[i] == me)
-			trans = TRANS_PENDING;
-	}
+        if (la_size) {
+                skb_copy_bits(skb, offset, la, la_size * step);
+                offset += la_size * step;
+                for (i = 0; i < la_size; i++) {
+                        VRR_DBG("la[%x]: %x", i, ntohl(la[i]));
+                        la[i] = ntohl(la[i]);
+                        if (la[i] == me)
+                                trans = TRANS_LINKED;
+                }
+        }
+
+        if (lna_size) {
+                skb_copy_bits(skb, offset, lna, lna_size * step);
+                offset += lna_size * step;
+                for (i = 0; i < lna_size; i++) {
+                        VRR_DBG("lna[%x]: %x", i, ntohl(lna[i]));
+                        lna[i] = ntohl(lna[i]);
+                        if (lna[i] == me)
+                                trans = TRANS_LINKED;
+                }
+        }
+
+        if (p_size) {
+                skb_copy_bits(skb, offset, p, p_size * step);
+                offset += p_size * step;
+                for (i = 0; i < p_size; i++) {
+                        VRR_DBG("p[%x]: %x", i, ntohl(p[i]));
+                        p[i] = ntohl(p[i]);
+                        if (p[i] == me)
+                                trans = TRANS_PENDING;
+                }
+        }
 
 	/* When node x receives a hello message from node y, it
 	 * compares its state in the hello message with its local
 	 * state for y. Then, it updates y's local state according to
-	 * the state transition diagram shown in Figure 5. */
+	 * the state transition diagram shown in Figure 5. 
+         */
 
 	next_state = hello_trans[cur_state][trans];
 
@@ -102,9 +126,12 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct ethhdr *eth,
 	VRR_DBG("next_state: %x", next_state);
 
 	if (cur_state == PSET_UNKNOWN)
-		pset_add(vh->src_id, next_state, eth->h_source);
+		pset_add(ntohl(vh->src_id), src_addr, next_state, active);
 	else
-		pset_update_status(vh->src_id, next_state);
+		pset_update_status(ntohl(vh->src_id), next_state, active);
+
+        /* Update pset state cache */
+        pset_state_update();
 	
 	/* if src is in pset
 	   do nothing
@@ -117,8 +144,7 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct ethhdr *eth,
 	return 0;
 }
 
-static int vrr_rcv_setup_req(struct sk_buff *skb, const struct ethhdr *eth,
-			     const struct vrr_header *vh)
+static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 {
 	/* send Setup packet to src from me, and include my vset */
 	/* 	add src to vset */
@@ -128,36 +154,33 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct ethhdr *eth,
 	return 0;
 }
 
-static int vrr_rcv_setup(struct sk_buff *skb, const struct ethhdr *eth,
-			 const struct vrr_header *vh)
+static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
 {
 	/* add src to vset */
 	/* get vset' from packet */
 	/* send setup_req to all nodes in vset' */
-	/* once all setups received from further sent setup_req, then activate me */
+	/* once all setups received from further sent setup_req, then
+         * activate me */
 
 	VRR_DBG("Packet type: VRR_SETUP");
 
 	return 0;
 }
 
-static int vrr_rcv_setup_fail(struct sk_buff *skb, const struct ethhdr *eth,
-			      const struct vrr_header *vh) 
+static int vrr_rcv_setup_fail(struct sk_buff *skb, const struct vrr_header *vh)
 {
 	VRR_DBG("Packet type: VRR_SETUP_FAIL");
 	
 	return 0;
 }
 
-static int vrr_rcv_teardown(struct sk_buff *skb, const struct ethhdr *eth,
-			    const struct vrr_header *vh) 
+static int vrr_rcv_teardown(struct sk_buff *skb, const struct vrr_header *vh) 
 {
 	VRR_DBG("Packet type: VRR_RCV_TEARDOWN");
 	return 0;
 }
 
-static int (*vrr_rcvfunc[6])(struct sk_buff *, const struct ethhdr *eth,
-			     const struct vrr_header *) = {
+static int (*vrr_rcvfunc[6])(struct sk_buff *, const struct vrr_header *) = {
 	&vrr_rcv_data,
 	&vrr_rcv_hello,
 	&vrr_rcv_setup_req,
@@ -169,9 +192,10 @@ static int (*vrr_rcvfunc[6])(struct sk_buff *, const struct ethhdr *eth,
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	    struct net_device *orig_dev)
 {
-	const struct ethhdr *eth = eth_hdr(skb);
 	const struct vrr_header *vh = vrr_hdr(skb);
 	int err;
+
+        WARN_ATOMIC;
 
 	/* Do stuff! */
 	printk(KERN_ALERT "Received a VRR packet!");
@@ -180,19 +204,19 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	/* Debug vrr header */
 	VRR_INFO("vrr_version: %x", vh->vrr_version);
 	VRR_INFO("pkt_type: %x", vh->pkt_type);
-	VRR_INFO("protocol: %x", vh->protocol);
-	VRR_INFO("data_len: %x", vh->data_len);
+	VRR_INFO("protocol: %x", ntohs(vh->protocol));
+	VRR_INFO("data_len: %x", ntohs(vh->data_len));
 	VRR_INFO("free: %x", vh->free);
 	VRR_INFO("h_csum: %x", vh->h_csum);
-	VRR_INFO("src_id: %x", vh->src_id);
-	VRR_INFO("dest_id: %x", vh->dest_id);
+	VRR_INFO("src_id: %x", ntohl(vh->src_id));
+	VRR_INFO("dest_id: %x", ntohl(vh->dest_id));
 
 	if (vh->pkt_type < 0 || vh->pkt_type >= VRR_NPTYPES) {
 		VRR_ERR("Unknown pkt_type: %x", vh->pkt_type);
 		goto drop;
 	}
 
-	err = (*vrr_rcvfunc[vh->pkt_type])(skb, eth, vh);
+	err = (*vrr_rcvfunc[vh->pkt_type])(skb, vh);
 	kfree_skb(skb);
 
 	if (err) {
@@ -200,7 +224,7 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 		goto drop;
 	}
 
-	return 0;
+	return NET_RX_SUCCESS;
 drop:
 	return NET_RX_DROP;
 }

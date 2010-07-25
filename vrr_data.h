@@ -15,6 +15,15 @@ typedef struct routing_table_entry {
 	int path_id;		//Path ID
 } rt_entry;
 
+//Physical Set Setup
+typedef struct pset_list {
+	struct list_head	list;
+	u_int			node;
+	u_int			status;
+        u_int			active;
+	mac_addr		mac;
+} pset_list_t;
+
 /*
  * Routes, Pset, and Vset initialization
  * vrr_data_init : Call once before using any of the other functions
@@ -45,12 +54,12 @@ int rt_remove_nexts(u_int route_hop_to_remove);
  *	to mac for the data.
  * pset_update_status : Updates node with a new status.
  */
-int pset_add(u_int node, u_int status, const mac_addr mac);
+int pset_add(u_int node, const mac_addr mac, u_int status, u_int active);
 int pset_remove(u_int node);
 u_int pset_get_status(u_int node);
 void pset_get_mac(u_int node, mac_addr * mac);
-int pset_update_status(u_int node, u_int new_status);
-
+int pset_update_status(u_int node, u_int new_status, u_int active);
+struct list_head *pset_head(void);
 
 /* Functions for virtual set of nodes
  * vset_add : Adds a node to the virtual set.  Returns 0 on failure

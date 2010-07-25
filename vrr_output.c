@@ -1,24 +1,25 @@
+#include <linux/if_ether.h>
 #include <linux/netdevice.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include "vrr.h"
 
-
-
 int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 {
 	struct net_device *dev;
-	struct eth_header header;
+	struct ethhdr header;
 	struct vrr_header *vh;
 	int err = 0;
+
+        WARN_ATOMIC;
 
         VRR_DBG("Output started");
 
 	vh = (struct vrr_header *)skb->data;
 
-	dev = dev_get_by_name(&init_net, "eth2");
+	dev = dev_get_by_name(&init_net, vrr->dev_name);
         if (dev == 0) {
-		VRR_ERR("Device %s does not exist", "eth2");
+                VRR_ERR("Device %s does not exist", vrr->dev_name);
 		err = -1;
 		goto out;
 	}
@@ -27,15 +28,14 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 	skb->dev = dev;
 
 	if (type == VRR_HELLO)
-		memcpy(header.dest, dev->broadcast, MAC_ADDR_LEN);
-
-//	else if (type == VRR_DATA)
-//		memcpy(header.dest, vh->dest_mac, MAC_ADDR_LEN);
+                memcpy(&header.h_dest, dev->broadcast, MAC_ADDR_LEN);
+	else if (type == VRR_DATA)
+		memcpy(&header.h_dest, vh->dest_mac, MAC_ADDR_LEN);
 
 	VRR_DBG("header dest added");
 
-	memcpy(header.source, dev->dev_addr, MAC_ADDR_LEN);
-	header.protocol = htons(ETH_P_VRR);
+	memcpy(&header.h_source, dev->dev_addr, MAC_ADDR_LEN);
+	header.h_proto = htons(ETH_P_VRR);
 
 	VRR_DBG("header done");
 

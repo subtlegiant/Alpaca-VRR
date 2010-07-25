@@ -9,6 +9,8 @@
 #include <linux/hrtimer.h>
 #include <linux/random.h>
 
+#define WARN_ATOMIC if (in_atomic()) printk(KERN_ERR "\n%s: WARNING!!!!! THIS FUNCTION IS EXECUTED IN ATOMIC CONTEXT!!!!!\n", __func__)
+
 /* PATCH: include/linux/socket.h */
 #define AF_VRR 27
 #define PF_VRR AF_VRR
@@ -73,19 +75,17 @@ struct pset_state {
 	int l_active[VRR_PSET_SIZE];
 	int l_not_active[VRR_PSET_SIZE];
 	int pending[VRR_PSET_SIZE];
-	int failed[VRR_PSET_SIZE];
  
         // arrays holding pset mac addrs mapped
         // by index to id arrays 
-        mac_addr pending_mac[VRR_PSET_SIZE];
         mac_addr la_mac[VRR_PSET_SIZE];
         mac_addr lna_mac[VRR_PSET_SIZE];
+        mac_addr pending_mac[VRR_PSET_SIZE];
 
         // sizes of id arrays
 	int la_size;
         int lna_size;
         int p_size;
-	int f_size;
 
         // size of mac address arrays
         // used mostly for debug, should 
@@ -199,6 +199,8 @@ mac_addr *get_pset_active_mac(void);
 
 //returns the number of bytes in the pset la_mac array
 int get_pset_active_mac_size(void);
+
+void pset_state_update(void);
 
 
 #endif	/* _VRR_H */

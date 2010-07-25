@@ -9,18 +9,19 @@
 #include <net/sock.h>
 #include <linux/timer.h>
 #include <linux/jiffies.h>
+#include <linux/hardirq.h>
 
 #include "vrr.h"
 #include "vrr_data.h"
 
-static void hpkt_timer_tick(unsigned long arg);
+static void vrr_timer_tick(unsigned long arg);
 
 /* Defined in af_vrr.c */
 extern const struct net_proto_family vrr_family_ops;
 extern struct proto vrr_proto;
 
-static struct timer_list hpkt_timer =
-		TIMER_INITIALIZER (hpkt_timer_tick, 0, 0);
+static struct timer_list vrr_timer =
+		TIMER_INITIALIZER (vrr_timer_tick, 0, 0);
 
 static struct packet_type vrr_packet_type __read_mostly = {
 	.type = cpu_to_be16(ETH_P_VRR),
@@ -109,21 +110,23 @@ static struct attribute_group attr_group = {
 
 static struct kobject *vrr_obj;
 
-static void hpkt_timer_tick(unsigned long arg)
+static void vrr_workqueue_handler(struct work_struct *work)
+{
+        send_hpkt();
+}
+
+static DECLARE_WORK(vrr_workqueue, vrr_workqueue_handler);
+
+/* This function runs with preemption (and possibly interrupts)
+ * disabled. It can't run anything that sleeps. */
+static void vrr_timer_tick(unsigned long arg)
 {
 	unsigned long tdelay;
 
 	tdelay = jiffies + VRR_HPKT_DELAY;
-
-	if(send_hpkt() != 0) {
-		VRR_DBG("Hello packet was not sent");
-	}
-
-	mod_timer(&hpkt_timer, tdelay);
-     
-	VRR_DBG("Hello packet sent");
+        schedule_work(&vrr_workqueue);
+	mod_timer(&vrr_timer, tdelay);
 }
-	
 
 //Initialize the module
 static int __init vrr_init(void)
@@ -138,6 +141,8 @@ static int __init vrr_init(void)
 
 	int err;
         unsigned long tdelay;
+
+        WARN_ATOMIC;
 
 	//start hello packet timer
 	tdelay = jiffies + VRR_HPKT_DELAY;
@@ -175,7 +180,7 @@ static int __init vrr_init(void)
 
 	dev_add_pack(&vrr_packet_type);
 
-    	mod_timer(&hpkt_timer, tdelay);
+    	mod_timer(&vrr_timer, tdelay);
 
 	VRR_INFO("End init");
 
@@ -187,7 +192,7 @@ static void __exit vrr_exit(void)
 {
 	sock_unregister(AF_VRR);
 	dev_remove_pack(&vrr_packet_type);
-	del_timer(&hpkt_timer);
+	del_timer(&vrr_timer);
 	/* Cleanup routing/sysfs stuff here */
 	kobject_put(vrr_obj);
 
