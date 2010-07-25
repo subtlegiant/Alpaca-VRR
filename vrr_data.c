@@ -113,7 +113,9 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
 
 	if(endpoint == max_entry->route.ea)
 		return max_entry->route.na;
-	return max_entry->route.nb;
+	else if(endpoint == max_entry->route.eb)
+		return max_entry->route.nb;
+	return 0;
 }
 
 
