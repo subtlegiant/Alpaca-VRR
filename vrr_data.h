@@ -41,7 +41,7 @@ void vrr_data_init(void);
  *	that use that node
  */
 u_int rt_get_next(u_int dest);
-u_int rt_get_next_exclude(u_int dest);
+u_int rt_get_next_exclude(u_int dest, u_int src);
 void rt_add_route(struct routing_table_entry new_entry);
 int rt_remove_nexts(u_int route_hop_to_remove);
 

@@ -45,8 +45,6 @@ typedef struct vset_list {
 
 static int vset_size = 0;
 static vset_list_t vset;
-//static u_int vset[VRR_VSET_SIZE];
-
 
 //internal functions
 u_int get_diff(u_int x, u_int y);
@@ -71,9 +69,10 @@ void vrr_data_init()
  */
 u_int rt_get_next(u_int dest)
 {
+	u_int next;
 	unsigned long flags;
 	spin_lock_irqsave(&vrr_rt_lock, flags);
-	u_int next = rt_search(&rt_root, dest);
+	next = rt_search(&rt_root, dest);
 	spin_unlock_irqrestore(&vrr_rt_lock, flags);
 
 	return next;
@@ -83,6 +82,43 @@ u_int rt_get_next(u_int dest)
  * Helper function to search the Red-Black Tree routing table
  */
 u_int rt_search(struct rb_root *root, u_int value)
+{
+	struct rb_node *node = root->rb_node;	// top of the tree
+
+	while (node) {
+		rt_node_t *curr = rb_entry(node, rt_node_t, node);
+
+		if (curr->route > value)
+			node = node->rb_left;
+		else if (curr->route < value)
+			node = node->rb_right;
+		else {
+			if (curr->route == ME)
+				return 0;
+			return route_list_helper(&curr->routes, value);
+		}
+	}
+}
+
+/*
+ * Returns the next hop in the routing table, given the destination
+ * parameter.  Returns 0 when no route exists.
+ */
+u_int rt_get_next_exclude(u_int dest, u_int src)
+{
+	u_int next;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_rt_lock, flags);
+	next = rt_search(&rt_root, dest);
+	spin_unlock_irqrestore(&vrr_rt_lock, flags);
+
+	return next;
+}
+
+/*
+ * Helper function to search the Red-Black Tree routing table
+ */
+u_int rt_search_exclude(struct rb_root *root, u_int value)
 {
 	struct rb_node *node = root->rb_node;	// top of the tree
 
@@ -119,7 +155,7 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
 		}
 	}
 	
-	if(get_diff(endpoint,max_entry->route.ea) < get_diff(endpoint,max_entry->route.eb0))
+	if(get_diff(endpoint,max_entry->route.ea) < get_diff(endpoint,max_entry->route.eb))
 		if (max_entry->route.ea != ME)		
 			return max_entry->route.na;
 		else 
