@@ -118,16 +118,21 @@ u_int rt_get_next_exclude(u_int dest, u_int src)
 }
 
 /*
- * Helper function to search the Red-Black Tree routing table
+ * Helper function to search the Red-Black Tree routing table, while excluding the src node
  */
 u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src)
 {
 	struct rb_node *node = root->rb_node;	// top of the tree
+	rt_node_t *curr = NULL;
+	rt_node_t *prev = NULL;
 
 	while (node) {
-		rt_node_t *curr = rb_entry(node, rt_node_t, node);
+		prev = curr;
+		curr = rb_entry(node, rt_node_t, node);
 
-		if (curr->route > value)
+		if (curr->route == src && prev)
+			return route_list_helper(&prev->routes, value);
+		else if (curr->route > value)
 			node = node->rb_left;
 		else if (curr->route < value)
 			node = node->rb_right;
