@@ -152,8 +152,57 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 
 static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 {
-	/* send Setup packet to src from me, and include my vset */
-	/* 	add src to vset */
+	u_int nh, proxy, vset_size, i;
+	u_int *vset;
+	size_t offset = sizeof(struct vrr_header);
+	size_t step = sizeof(u_int);
+
+	/* nh := NextHopExclude(rt, dst, src); */
+	/* if (nh != null) */
+	/*     Send <setup_req, src, dst, proxy, vset'> to nh */
+	/* else */
+	/*     ovset := vset; added := Add(vset, src, vset') */
+	/*     if (added) */
+	/*         Send <setup, me, src, NewPid(), proxy, ovset> to me */
+	/*     else */
+	/*         Send <setup_fail, me, src, proxy, ovset> to me */
+
+	skb_copy_bits(skb, offset, &proxy, step);
+	proxy = ntohl(proxy);
+	offset += step;
+	VRR_DBG("Proxy: %x", proxy);
+
+	skb_copy_bits(skb, offset, &vset_size, step);
+	vset_size = ntohl(vset_size);
+	offset += step;
+	VRR_DBG("Vset' size: %x", vset_size);
+
+	if (vset_size < 0 || vset_size > VRR_VSET_SIZE) {
+		VRR_ERR("Invalid vset' size: %x. Dropping packet.", vset_size);
+		return -1;
+	}
+
+	vset = kmalloc(vset_size * sizeof(u32), GFP_ATOMIC);
+	if (!vset) {
+		VRR_ERR("No memory for vset. Dropping packet.");
+		return -1;
+	}
+
+	skb_copy_bits(skb, offset, &vset, vset_size * sizeof(u32));
+	for (i = 0; i < vset_size; i++) {
+		vset[i] = ntohl(vset[i]);
+	}
+
+	nh = rt_get_next_exclude(ntohl(vh->dest_id), ntohl(vh->src_id));
+	if (nh != NULL) {
+		send_setup_req(nh, ntohl(vh->src_id), ntohl(vh->dest_id),
+			       proxy, vset_size, vset);
+		kfree(vset);
+		return 0;
+	}
+
+	
+
 
 	VRR_DBG("Packet type: VRR_SETUP_REQ");
 
