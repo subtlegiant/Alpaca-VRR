@@ -51,6 +51,7 @@ u_int get_diff(u_int x, u_int y);
 void insert_vset_node(u_int node);
 void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint);
 u_int rt_search(struct rb_root *root, u_int value);
+u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src);
 u_int route_list_helper(routes_list_t * r_list, u_int endpoint);
 
 void vrr_data_init()
@@ -98,34 +99,40 @@ u_int rt_search(struct rb_root *root, u_int value)
 			return route_list_helper(&curr->routes, value);
 		}
 	}
+	return 0;
 }
 
 /*
  * Returns the next hop in the routing table, given the destination
- * parameter.  Returns 0 when no route exists.
+ * parameter. Excludes the src from the search. Returns 0 when no route exists.
  */
 u_int rt_get_next_exclude(u_int dest, u_int src)
 {
 	u_int next;
 	unsigned long flags;
 	spin_lock_irqsave(&vrr_rt_lock, flags);
-	next = rt_search(&rt_root, dest);
+	next = rt_search_exclude(&rt_root, dest, src);
 	spin_unlock_irqrestore(&vrr_rt_lock, flags);
 
 	return next;
 }
 
 /*
- * Helper function to search the Red-Black Tree routing table
+ * Helper function to search the Red-Black Tree routing table, while excluding the src node
  */
-u_int rt_search_exclude(struct rb_root *root, u_int value)
+u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src)
 {
 	struct rb_node *node = root->rb_node;	// top of the tree
+	rt_node_t *curr = NULL;
+	rt_node_t *prev = NULL;
 
 	while (node) {
-		rt_node_t *curr = rb_entry(node, rt_node_t, node);
+		prev = curr;
+		curr = rb_entry(node, rt_node_t, node);
 
-		if (curr->route > value)
+		if (curr->route == src && prev)
+			return route_list_helper(&prev->routes, value);
+		else if (curr->route > value)
 			node = node->rb_left;
 		else if (curr->route < value)
 			node = node->rb_right;
@@ -135,6 +142,7 @@ u_int rt_search_exclude(struct rb_root *root, u_int value)
 			return route_list_helper(&curr->routes, value);
 		}
 	}
+	return 0;
 }
 
 /* Helper function to search a list of route entries of a particular node, for the
@@ -192,6 +200,8 @@ void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint)
 	int exists = 0;
 	unsigned long flags;
 
+	spin_lock_irqsave(&vrr_rt_lock, flags);
+
 	while (*link) //Find node to insert at
 	{
 		parent = *link;
@@ -211,11 +221,9 @@ void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint)
 		routes_list_t * tmp;
 
 		tmp = (routes_list_t *) kmalloc(sizeof(routes_list_t), GFP_ATOMIC);
-        	memcpy(&tmp->route, &new_entry, sizeof(rt_entry));
+		memcpy(&tmp->route, &new_entry, sizeof(rt_entry));
 
-		spin_lock_irqsave(&vrr_rt_lock, flags);
 		list_add(&(tmp->list), &(curr->routes.list));
-		spin_unlock_irqrestore(&vrr_rt_lock, flags);
 	}
 	else {
 		//create new rt_entry_t node
@@ -224,12 +232,13 @@ void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint)
 		//initialize new routes list
 		INIT_LIST_HEAD( &(new_node->routes.list) );
 		//copy new_entry to this new list
-        	memcpy(&new_node->routes.route, &new_entry, sizeof(rt_entry));
+		memcpy(&new_node->routes.route, &new_entry, sizeof(rt_entry));
 
 		// Put the new node there
 		rb_link_node(&(new_node->node), parent, link);
 		rb_insert_color(&(new_node->node), root);
 	}
+	spin_unlock_irqrestore(&vrr_rt_lock, flags);
 }
 
 
@@ -247,10 +256,13 @@ int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_pset_lock, flags);
 
 	list_for_each(pos, &pset.list){	//check to see if node already exists
 		tmp= list_entry(pos, pset_list_t, list);
 		if (tmp->node == node) {
+			spin_unlock_irqrestore(&vrr_pset_lock, flags);
 			return 0;
 		}
 	}
@@ -259,14 +271,15 @@ int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
 	tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_ATOMIC);
 
 	tmp->node = node;
-        tmp->status = status;
-        tmp->active = active ? 1 : 0;
-        memcpy(tmp->mac, mac, sizeof(mac_addr));
+	tmp->status = status;
+	tmp->active = active ? 1 : 0;
+	memcpy(tmp->mac, mac, sizeof(mac_addr));
 
 	list_add(&(tmp->list), &(pset.list));
 
 	pset_size += 1;
 
+	spin_unlock_irqrestore(&vrr_pset_lock, flags);
 	return 1;
 }
 
@@ -274,6 +287,8 @@ int pset_remove(u_int node)
 {
 	pset_list_t * tmp;
 	struct list_head * pos, *q;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_pset_lock, flags);
 
 	list_for_each_safe(pos, q, &pset.list) {
 		tmp= list_entry(pos, pset_list_t, list);
@@ -283,6 +298,7 @@ int pset_remove(u_int node)
 		}
 	}
 
+	spin_unlock_irqrestore(&vrr_pset_lock, flags);
 	return 0;
 }
 
@@ -290,13 +306,17 @@ u_int pset_get_status(u_int node)
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_pset_lock, flags);
 
 	list_for_each(pos, &pset.list){	
 		tmp= list_entry(pos, pset_list_t, list);
 		if (tmp->node == node) {
+			spin_unlock_irqrestore(&vrr_pset_lock, flags);
 			return tmp->status;
 		}
 	}
+	spin_unlock_irqrestore(&vrr_pset_lock, flags);
 	return PSET_UNKNOWN;
 }
 
@@ -304,57 +324,69 @@ int pset_update_status(u_int node, u_int newstatus, u_int active)
 {
 	pset_list_t * tmp;
 	struct list_head * pos;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_pset_lock, flags);
 
 	list_for_each(pos, &pset.list){	
 		tmp= list_entry(pos, pset_list_t, list);
 		if (tmp->node == node) {
 			tmp->status = newstatus;
-                        tmp->active = active ? 1 : 0;
+			tmp->active = active ? 1 : 0;
+			spin_unlock_irqrestore(&vrr_pset_lock, flags);
 			return 1;
 		}
 	}
+	spin_unlock_irqrestore(&vrr_pset_lock, flags);
 	return 0;
 }
 
 int pset_get_mac(u_int node, mac_addr mac)
 {
-        pset_list_t * tmp;
-        struct list_head * pos;
+	pset_list_t * tmp;
+	struct list_head * pos;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_pset_lock, flags);
 
-        list_for_each(pos, &pset.list){
-                tmp= list_entry(pos, pset_list_t, list);
-                if (tmp->node == node) {
-        		memcpy(mac, tmp->mac, sizeof(mac_addr));
+	list_for_each(pos, &pset.list){
+		tmp= list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			memcpy(mac, tmp->mac, sizeof(mac_addr));
+			spin_unlock_irqrestore(&vrr_pset_lock, flags);
 			return 1;
-                }
-        }
+		}
+	}
+	spin_unlock_irqrestore(&vrr_pset_lock, flags);
 	return 0;
 }
 
 int pset_inc_fail_count(struct pset_list *node)
 {
-        atomic_inc(&node->fail_count);
-        return atomic_read(&node->fail_count);
+	atomic_inc(&node->fail_count);
+	return atomic_read(&node->fail_count);
 }
 
 int pset_reset_fail_count(u_int node)
 {
-        pset_list_t *tmp;
-        struct list_head *pos;
+	pset_list_t *tmp;
+	struct list_head *pos;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_pset_lock, flags);
 
-        list_for_each(pos, &pset.list) {
-                tmp = list_entry(pos, pset_list_t, list);
-                if (tmp->node == node) {
-                        atomic_set(&tmp->fail_count, 0);
-                        return 0;
-                }
-        }
-        return -1;
+	list_for_each(pos, &pset.list) {
+		tmp = list_entry(pos, pset_list_t, list);
+		if (tmp->node == node) {
+			atomic_set(&tmp->fail_count, 0);
+			spin_unlock_irqrestore(&vrr_pset_lock, flags);
+			return 0;
+		}
+	}
+	spin_unlock_irqrestore(&vrr_pset_lock, flags);
+	return -1;
 }
 
 struct list_head *pset_head()
 {
-        return &pset.list;
+	return &pset.list;
 }
 
 u_int pset_get_proxy() {
@@ -404,16 +436,21 @@ int vset_remove(u_int node)
 {
 	vset_list_t * tmp;
 	struct list_head * pos, *q;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_vset_lock, flags);
+
 
 	list_for_each_safe(pos, q, &vset.list) {
 		tmp= list_entry(pos, vset_list_t, list);
 		if (tmp->node == node) {
 			list_del(pos);
 			kfree(tmp);
+			spin_unlock_irqrestore(&vrr_vset_lock, flags);
 			return 1;
 		}
 	}
 
+	spin_unlock_irqrestore(&vrr_vset_lock, flags);
 	return 0;
 }
 
@@ -427,14 +464,20 @@ int vset_get_all(u_int * vset_all)
 	vset_list_t * tmp;
 	struct list_head * pos;
 	int i = 0;
-	vset_all = (u_int *) kmalloc(vset_size * sizeof(u_int), GFP_ATOMIC);
+	int l_vset_size;
+	unsigned long flags;
+	spin_lock_irqsave(&vrr_vset_lock, flags);
+	l_vset_size = vset_size;
+
+	vset_all = (u_int *) kmalloc(l_vset_size * sizeof(u_int), GFP_ATOMIC);
 
 	list_for_each(pos, &vset.list){	
 		tmp= list_entry(pos, vset_list_t, list);
 		vset_all[i] = tmp->node;
 		i++;
 	}
-	return vset_size;
+	spin_unlock_irqrestore(&vrr_vset_lock, flags);
+	return l_vset_size;
 }
 
 //Helper Functions
