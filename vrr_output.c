@@ -2,9 +2,12 @@
 #include <linux/netdevice.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/skbuff.h>
 #include "vrr.h"
+#include "vrr_data.h"
 
-int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
+int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, 
+               int type)
 {
 	struct net_device *dev;
 	struct ethhdr header;
@@ -46,7 +49,36 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, int type)
 	dev_queue_xmit(skb);
 
         VRR_DBG("transmit done");
+	
+	return NET_XMIT_SUCCESS;
 
  out: 
 	return err;
+}
+
+/* Call the routing table to find next hop destination */
+int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh)
+{
+	u_int next_hop;
+        u8 next_hop_mac[ETH_ALEN];
+        struct ethhdr *dev_header;
+
+        next_hop = rt_get_next(vh->dest_id);
+        if (next_hop == 0) 
+		goto fail;
+        
+   	if (!pset_get_mac(next_hop, next_hop_mac))
+		goto fail;
+
+        dev_header = (struct ethhdr *)skb_network_header(skb);
+        memcpy(dev_header->h_dest, next_hop_mac, MAC_ADDR_LEN);
+        
+	dev_queue_xmit(skb);
+
+	return NET_XMIT_SUCCESS;
+
+fail:
+	VRR_DBG("Forward failed");
+        return NET_XMIT_DROP;
+       
 }

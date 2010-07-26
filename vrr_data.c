@@ -262,7 +262,7 @@ int pset_update_status(u_int node, u_int newstatus, u_int active)
 	return 0;
 }
 
-void pset_get_mac(u_int node, mac_addr * mac)
+void pset_get_mac(u_int node, mac_addr mac)
 {
         pset_list_t * tmp;
         struct list_head * pos;

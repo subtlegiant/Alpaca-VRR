@@ -31,6 +31,14 @@ static int vrr_rcv_data(struct sk_buff *skb, const struct vrr_header *vh)
 	/* else */
 	/* send packet back out to nh */
 
+        if (vh->dest_id == get_vrr_id()) {
+        	/* send to application layer */
+        }
+
+	else 
+		vrr_forward(skb, vh);
+
+
 	VRR_DBG("Packet type: VRR_DATA");
 
 	return 0;
