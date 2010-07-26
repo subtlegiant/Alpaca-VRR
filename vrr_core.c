@@ -6,7 +6,6 @@
 #include <linux/skbuff.h>
 #include <linux/errno.h>
 #include <linux/mm.h>
-
 #include "vrr.h"
 #include "vrr_data.h"
 
@@ -198,34 +197,7 @@ int rmv_vrr_header(struct sk_buff *skb)
 /* 	return pkt_type; */
 /* } */
 
-int set_vrr_id(u_int vrr_id)
-{
-	if (vrr_id == 0) {
-		/*generate random unsigned int
-		 *arg is always zero at boot time
-		 *but id may be changed/set via
-		 *user space/sysfs which would pass
-		 *a non-zero arg
-		 */
-	}
 
-	else {
-		/*set the id in the vrr node
-		 */
-	}
-        vrr->id = 1;
-
-	return 1;
-}
-
-/*called by sysfs show function or
- * sockets module
- */
-u_int get_vrr_id()
-{
-
-	return vrr->id;
-}
 
 /*build and send a hello packet */
 
@@ -242,17 +214,17 @@ int send_hpkt()
 	struct sk_buff *skb;
 	struct vrr_packet hpkt;
 	int data_size, i = 0, p = 0;
-  	u_int *hpkt_data;
+  	u32 *hpkt_data;
 
         WARN_ATOMIC;
 
         VRR_DBG("My ID: %x", vrr->id);
 
-        data_size = sizeof(u_int) * (pstate->la_size + 
+        data_size = sizeof(u32) * (pstate->la_size + 
                                      pstate->lna_size + 
                                      pstate->p_size + 4);
 
-        hpkt_data = (u_int *) kmalloc(data_size, GFP_KERNEL);
+        hpkt_data = (u32 *) kmalloc(data_size, GFP_KERNEL);
 
         VRR_DBG("vrr->active: %x", vrr->active);
 	hpkt_data[p++] = htonl(vrr->active);
@@ -293,6 +265,7 @@ int send_hpkt()
 	hpkt.pkt_type = VRR_HELLO;
 	build_header(skb, &hpkt);
 	vrr_output(skb, vrr_get_node(), VRR_HELLO);
+                   
 
         kfree(hpkt_data);
 	return 0;
@@ -302,15 +275,66 @@ int send_hpkt()
 	return -1;
 }
 
-int *get_pset_active()
+int set_vrr_id(u_int vrr_id)
+{
+	if (vrr_id == 0) {
+		/*generate random unsigned int
+		 *arg is always zero at boot time
+		 *but id may be changed/set via
+		 *user space/sysfs which would pass
+		 *a non-zero arg
+		 */
+	}
+
+	else {
+		/*set the id in the vrr node
+		 */
+	}
+        vrr->id = 1;
+
+	return 1;
+}
+
+
+/*called by sysfs show function or
+ * sockets module
+ */
+u_int get_vrr_id()
+{
+
+	return vrr->id;
+}
+
+
+u32 *get_pset_active()
 {
 	return pstate->l_active;
 }
 
+u32 *get_pset_not_active()
+{
+	return pstate->l_not_active;
+}
+
+u32 *get_pset_pending()
+{
+
+	return pstate->pending;
+}
 
 int get_pset_active_size()
 {
-	return pstate->la_size * sizeof(int); 
+	return pstate->la_size * sizeof(u32); 
+}
+
+int get_pset_not_active_size()
+{
+	return pstate->lna_size * sizeof(u32);
+}
+
+int get_pset_pending_size()
+{
+	return pstate->p_size * sizeof(u32);
 }
 
 mac_addr *get_pset_active_mac()
@@ -318,11 +342,30 @@ mac_addr *get_pset_active_mac()
 	return pstate->la_mac;
 }
 
+mac_addr *get_pset_not_active_mac()
+{
+	return pstate->lna_mac;
+}
+
+mac_addr *get_pset_pending_mac()
+{
+	return pstate->pending_mac;
+}
+
 int get_pset_active_mac_size()
 {
 	return pstate->lam_size * sizeof(mac_addr);
 }
 
+int get_pset_not_active_mac_size()
+{
+	return pstate->lnam_size * sizeof(mac_addr);
+}
+
+int get_pset_pending_mac_size()
+{
+	return pstate->pm_size * sizeof(mac_addr);
+}
 
 struct vrr_node* vrr_get_node()
 {
@@ -336,7 +379,8 @@ int send_setup_req()
 	//struct vrr_packet *set_req;
 	//set_req->pkt_type = VRR_SETUP;
 	//build_header(skb, set_req);
-	//vrr_output(skb, VRR_SETUP_REQ);
+	//vrr_output(skb, VRR_SETUP_REQ);int pset_state_init(void);
+
 
 	return 1;
 

@@ -8,6 +8,7 @@
 #include <linux/netdevice.h>
 #include <linux/hrtimer.h>
 #include <linux/random.h>
+#include <linux/types.h>
 
 #define WARN_ATOMIC if (in_atomic()) printk(KERN_ERR "\n%s: WARNING!!!!! THIS FUNCTION IS EXECUTED IN ATOMIC CONTEXT!!!!!\n", __func__)
 
@@ -66,16 +67,16 @@ struct eth_header {
 };
 
 /* We need to be explicit on the size of these fields, since 'int'
-   varies depending on architecture. -tad */
+   varies depending on architecture. -tad    ***DONE*** */ 
 struct pset_state {
 	/* Shouldn't we be using linked lists here? We're going to be
 	 * adding/removing to these arrays quite a bit, and we'll need
 	 * to deal with shifting / bounds issues. -tad */
 
 	// arrays holding pset ids
-	int l_active[VRR_PSET_SIZE];
-	int l_not_active[VRR_PSET_SIZE];
-	int pending[VRR_PSET_SIZE];
+        u32 l_active[VRR_PSET_SIZE];
+	u32 l_not_active[VRR_PSET_SIZE];
+	u32 pending[VRR_PSET_SIZE];
  
         // arrays holding pset mac addrs mapped
         // by index to id arrays 
@@ -176,30 +177,53 @@ static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
             struct packet_type *pt, struct net_device *orig_dev);
 
+// forward packet to id closest to dest in rt
+int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh);
+
+/*
+ * Functions provided by vrr_core.c
+ */
+  
+// Vrr node functionality
 int get_pkt_type(struct sk_buff *skb);
 int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
-u_int get_vrr_id(void);
+unsigned int get_vrr_id(void);
 int vrr_node_init(void);
 struct vrr_node *vrr_get_node(void);
-int pset_state_init(void);
+
+// Vrr packet handling
 int send_hpkt(void);
 int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
 
-//returns a pointer to the pset l_active array
-int *get_pset_active(void);
 
-//returns the number of bytes in the pset l_active array
+/* 
+ * Functions to handle pset state
+ */
+
+int pset_state_init(void);
+
+//return a pointer any of the pset state arrays
+u32 *get_pset_active(void);
+u32 *get_pset_not_active(void);
+u32 *get_pset_pending(void);
+
+//return the number of bytes in the pset state arrays
 int get_pset_active_size(void);
+int get_pset_not_active_size(void);
+int get_pset_pending_size(void);
 
-//returns a pointer to the pset la_mac array:
-//the array of pset link active mac addresses
+//return a pointer to any of the the pset mac arrays
 mac_addr *get_pset_active_mac(void);
+mac_addr *get_pset_not_active_mac(void);
+mac_addr *get_pset_pending_mac(void);
 
-//returns the number of bytes in the pset la_mac array
+//return the number of bytes in the pset mac arrays
 int get_pset_active_mac_size(void);
+int get_pset_not_active_mac_size(void);
+int get_pset_pending_mac_size(void);
 
 void pset_state_update(void);
 
