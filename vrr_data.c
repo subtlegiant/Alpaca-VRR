@@ -357,6 +357,21 @@ struct list_head *pset_head()
         return &pset.list;
 }
 
+u_int pset_get_proxy() {
+	u_int active[VRR_PSET_SIZE];
+	u_int i = 0, r;
+
+	list_for_each(pos, &pset.list) {
+		tmp = list_entry(pos, pset_list_t, list);
+		if (tmp->status == PSET_LINKED && tmp->active) {
+			active[i++] = node;
+		}
+	}
+	get_random_bytes(&r, 4);
+	r = r % i;
+	return active[r];
+}
+
 /*
  * Virtual set functions
  */
@@ -421,9 +436,6 @@ int vset_get_all(u_int * vset_all)
 	}
 	return vset_size;
 }
-
-
-
 
 //Helper Functions
 u_int get_diff(u_int x, u_int y)

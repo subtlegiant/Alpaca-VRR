@@ -386,6 +386,16 @@ int send_setup_req()
 
 }
 
+int vrr_add(u_int src, u_int vset_size, u_int *vset) {
+	u_int i, proxy;
+	
+	for (i = 0; i < vset_size; i++) {
+		if (vset_should_add(vset[i])) {
+			proxy = pset_get_proxy();
+		}
+	}
+}
+
 //TODO vrr exit node: release vrr node memory
 //                    release pset_state memory
 //		      stop timer

@@ -160,8 +160,8 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 
 static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 {
-	u_int nh, proxy, vset_size, i;
-	u_int *vset;
+	u_int nh, proxy, vset_size, ovset_size, i;
+	u_int *vset, *ovset;
 	size_t offset = sizeof(struct vrr_header);
 	size_t step = sizeof(u_int);
 
@@ -171,9 +171,15 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 	/* else */
 	/*     ovset := vset; added := Add(vset, src, vset') */
 	/*     if (added) */
-	/*         Send <setup, me, src, NewPid(), proxy, ovset> to me */
+
 	/*     else */
 	/*         Send <setup_fail, me, src, proxy, ovset> to me */
+
+	nh = rt_get_next_exclude(ntohl(vh->dest_id), ntohl(vh->src_id));
+	if (nh) {
+		vrr_forward_setup_req(skb, vh, nh);
+		return 0;
+	}
 
 	skb_copy_bits(skb, offset, &proxy, step);
 	proxy = ntohl(proxy);
@@ -201,19 +207,16 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 		vset[i] = ntohl(vset[i]);
 	}
 
-	nh = rt_get_next_exclude(ntohl(vh->dest_id), ntohl(vh->src_id));
-	if (nh != NULL) {
-		send_setup_req(nh, ntohl(vh->src_id), ntohl(vh->dest_id),
-			       proxy, vset_size, vset);
-		kfree(vset);
-		return 0;
+	ovset_size = vset_get_all(ovset);
+	if (vrr_add(src, vset)) {
+		/* Send <setup, me, src, NewPid(), proxy, ovset> to me */
+		goto out;
 	}
 
 	
 
-
-	VRR_DBG("Packet type: VRR_SETUP_REQ");
-
+out:
+	kfree(ovset);
 	return 0;
 }
 
