@@ -35,13 +35,13 @@ void vrr_data_init(void);
 
 
 /* Routing Table functions:
- * rt_get_next : Get next hop given destination as parameter, returns 0
- *	on failure
+ * rt_get_next : Get next closest hop given destination as parameter.
  * rt_add_route : Adds a route to the Routing Table.
  * rt_remove_nexts : Given a 'NextA' hop, remove all entries in the table
  *	that use that node
  */
 u_int rt_get_next(u_int dest);
+u_int rt_get_next_exclude(u_int dest);
 void rt_add_route(struct routing_table_entry new_entry);
 int rt_remove_nexts(u_int route_hop_to_remove);
 
@@ -54,13 +54,13 @@ int rt_remove_nexts(u_int route_hop_to_remove);
  * pset_get_status : Gets current status of physical node.  Returns status or
  *	PSET_UNKNOWN
  * pset_get_mac: Gets current status of physical node.  Uses the passed pointer
- *	to mac for the data.
+ *	to mac for the data.  Returns 1 on success, 0 on failure.
  * pset_update_status : Updates node with a new status.
  */
 int pset_add(u_int node, const mac_addr mac, u_int status, u_int active);
 int pset_remove(u_int node);
 u_int pset_get_status(u_int node);
-void pset_get_mac(u_int node, mac_addr * mac);
+int pset_get_mac(u_int node, mac_addr mac);
 int pset_update_status(u_int node, u_int new_status, u_int active);
 int pset_inc_fail_count(struct pset_list *node);
 int pset_reset_fail_count(u_int node);
