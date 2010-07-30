@@ -145,8 +145,8 @@ u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src)
 	return 0;
 }
 
-/* Helper function to search a list of route entries of a particular node, for the
- * next path node with the highest path_id
+/* Helper function to search a list of route entries of a particular
+ * node, for the next path node with the highest path_id
  */
 u_int route_list_helper(routes_list_t * r_list, u_int endpoint) 
 {
@@ -163,7 +163,8 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
 		}
 	}
 	
-	if(get_diff(endpoint,max_entry->route.ea) < get_diff(endpoint,max_entry->route.eb))
+	if(get_diff(endpoint,max_entry->route.ea) < 
+           get_diff(endpoint,max_entry->route.eb))
 		if (max_entry->route.ea != ME)		
 			return max_entry->route.na;
 		else 
@@ -180,14 +181,18 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
  * Adds a route to the rb tree.  Might add two different entries if there
  * are both ea and eb values for the route.
  */
-void rt_add_route(struct routing_table_entry new_entry)
+int rt_add_route(struct routing_table_entry new_entry)
 {
+        /* TODO: return 0 if there is already an entry with the same
+         * ea and path_id */
+
 	if (new_entry.ea) {
 		rt_insert_helper(&rt_root, new_entry, new_entry.ea);
 	}
 	if (new_entry.eb) {
 		rt_insert_helper(&rt_root, new_entry, new_entry.eb);
 	}
+        return 1;
 }
 
 /* Helper function to add new entries to routing table.
@@ -340,6 +345,29 @@ int pset_update_status(u_int node, u_int newstatus, u_int active)
 	return 0;
 }
 
+int pset_lookup_mac(mac_addr mac, u32 *node)
+{
+        pset_list_t *tmp;
+        struct list_head *pos;
+        unsigned long flags;
+        int ret = 0;
+
+        spin_lock_irqsave(&vrr_pset_lock, flags);
+
+        list_for_each(pos, &pset.list) {
+                tmp = list_entry(pos, pset_list_t, list);
+                if (!memcmp(mac, tmp->mac, ETH_ALEN)) {
+                        *node = tmp->node;
+                        ret = 1;
+                        goto out;
+                }
+        }
+
+out:        
+        spin_unlock_irqrestore(&vrr_pset_lock, flags);
+        return ret;
+}
+
 int pset_get_mac(u_int node, mac_addr mac)
 {
 	pset_list_t * tmp;
@@ -392,13 +420,18 @@ struct list_head *pset_head()
 u_int pset_get_proxy() {
 	u_int active[VRR_PSET_SIZE];
 	u_int i = 0, r;
+        pset_list_t *tmp;
+        struct list_head *pos;
+        unsigned long flags;
 
+        spin_lock_irqsave(&vrr_pset_lock, flags);
 	list_for_each(pos, &pset.list) {
 		tmp = list_entry(pos, pset_list_t, list);
 		if (tmp->status == PSET_LINKED && tmp->active) {
-			active[i++] = node;
+			active[i++] = tmp->node;
 		}
 	}
+        spin_unlock_irqrestore(&vrr_pset_lock, flags);
 	get_random_bytes(&r, 4);
 	r = r % i;
 	return active[r];

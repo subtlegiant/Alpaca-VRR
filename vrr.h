@@ -197,6 +197,7 @@ int send_setup_req(u_int src, u_int dest, u_int proxy);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
+int vrr_add(u32 src, u_int vset_size, u_int *vset);
 
 /* 
  * Functions to handle pset state

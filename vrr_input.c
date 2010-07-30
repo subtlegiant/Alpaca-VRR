@@ -16,7 +16,7 @@
 static char *pset_states[4] = {"linked", "pending", "failed", "unknown"};
 static char *pset_trans[3] = {"linked", "pending", "missing"};
 
-int hello_trans[4][3] = {
+static int hello_trans[4][3] = {
 	/* linked	pending		missing */
 	{PSET_LINKED,	PSET_LINKED,	PSET_FAILED},	/* linked */
 	{PSET_LINKED,	PSET_LINKED,	PSET_PENDING},	/* pending */
@@ -160,22 +160,15 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 
 static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 {
-	u_int nh, proxy, vset_size, ovset_size, i;
-	u_int *vset, *ovset;
+	u32 nh, src, dst, proxy, vset_size, ovset_size, i;
+	u32 *vset = NULL, *ovset = NULL;
 	size_t offset = sizeof(struct vrr_header);
 	size_t step = sizeof(u_int);
 
-	/* nh := NextHopExclude(rt, dst, src); */
-	/* if (nh != null) */
-	/*     Send <setup_req, src, dst, proxy, vset'> to nh */
-	/* else */
-	/*     ovset := vset; added := Add(vset, src, vset') */
-	/*     if (added) */
+        src = ntohl(vh->src_id);
+        dst = ntohl(vh->dest_id);
 
-	/*     else */
-	/*         Send <setup_fail, me, src, proxy, ovset> to me */
-
-	nh = rt_get_next_exclude(ntohl(vh->dest_id), ntohl(vh->src_id));
+	nh = rt_get_next_exclude(dst, src);
 	if (nh) {
 		vrr_forward_setup_req(skb, vh, nh);
 		return 0;
@@ -202,34 +195,101 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 		return -1;
 	}
 
-	skb_copy_bits(skb, offset, &vset, vset_size * sizeof(u32));
+	skb_copy_bits(skb, offset, vset, vset_size * sizeof(u32));
 	for (i = 0; i < vset_size; i++) {
 		vset[i] = ntohl(vset[i]);
 	}
 
 	ovset_size = vset_get_all(ovset);
-	if (vrr_add(src, vset)) {
+	if (vrr_add(src, vset_size, vset)) {
 		/* Send <setup, me, src, NewPid(), proxy, ovset> to me */
 		goto out;
 	}
 
-	
+        /* Send <setup_fail, me, src, proxy, ovset> to me */
 
 out:
 	kfree(ovset);
+        kfree(vset);
 	return 0;
 }
 
 static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
 {
-	/* add src to vset */
-	/* get vset' from packet */
-	/* send setup_req to all nodes in vset' */
-	/* once all setups received from further sent setup_req, then
-         * activate me */
+        u32 nh, src, dst, pid, proxy, sender;
+        u32 *vset, vset_size;
+        size_t offset = sizeof(struct vrr_header);
+        size_t step = sizeof(u32);
+        int in_pset, i;
+        rt_entry rt;
+        unsigned char src_addr[ETH_ALEN];
 
 	VRR_DBG("Packet type: VRR_SETUP");
 
+        src = ntohl(vh->src_id);
+        dst = ntohl(vh->dest_id);
+
+        skb_copy_bits(skb, offset, &proxy, step);
+        proxy = ntohl(proxy);
+        offset += step;
+
+        skb_copy_bits(skb, offset, &pid, step);
+        pid = ntohl(pid);
+        offset += step;
+
+        eth_header_parse(skb, src_addr);
+        in_pset = pset_lookup_mac(src_addr, &sender);
+        if (!in_pset) {
+                /* TearDownPath(<pid, src>, null) */
+                return 0;
+        }
+
+        if (pset_get_status(vh->dest_id) == PSET_UNKNOWN)
+                nh = rt_get_next(proxy);
+        else
+                nh = vh->dest_id;
+
+        rt.ea = src;
+        rt.eb = dst;
+        rt.na = sender;
+        rt.nb = nh;
+        rt.path_id = pid;
+
+        if (!rt_add_route(rt)) {
+                /* TearDownPath(<pid, src>, null) */
+                return 0;
+        }
+
+	skb_copy_bits(skb, offset, &vset_size, step);
+	vset_size = ntohl(vset_size);
+	offset += step;
+	VRR_DBG("Vset' size: %x", vset_size);
+
+	if (vset_size < 0 || vset_size > VRR_VSET_SIZE) {
+		VRR_ERR("Invalid vset' size: %x. Dropping packet.", vset_size);
+		return -1;
+	}
+
+	vset = kmalloc(vset_size * sizeof(u32), GFP_ATOMIC);
+	if (!vset) {
+		VRR_ERR("No memory for vset. Dropping packet.");
+		return -1;
+	}
+
+	skb_copy_bits(skb, offset, vset, vset_size * sizeof(u32));
+	for (i = 0; i < vset_size; i++) {
+		vset[i] = ntohl(vset[i]);
+	}
+
+        if (nh != 0) {
+                /* Send <setup, src, dst, pid, proxy, vset'> to nh */
+                return 0;
+        }
+
+        if (dst == get_vrr_id() && vrr_add(src, vset_size, vset))
+                return 0;
+
+        /* TearDownPath(<pid, src>, null>) */
 	return 0;
 }
 

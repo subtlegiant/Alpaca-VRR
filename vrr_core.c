@@ -329,7 +329,6 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
 	
 	kfree(setup_req_data);
         kfree(vset);
-  	kfree(proxy_mac);
   	return 0;
 
 fail:
@@ -438,14 +437,20 @@ struct vrr_node* vrr_get_node()
 }
 
 
-int vrr_add(u_int src, u_int vset_size, u_int *vset) {
+int vrr_add(u32 src, u_int vset_size, u_int *vset) {
 	u_int i, proxy;
 	
-	for (i = 0; i < vset_size; i++) {
+	for (i = 0; i < vset_size; i++)
 		if (vset_should_add(vset[i])) {
 			proxy = pset_get_proxy();
+                        /* Send <setup_req, me, id, proxy, vset> to proxy */
 		}
-	}
+        if (src && vset_should_add(src)) {
+                vset_add(src);
+                /* for each (id in rem) TearDownPathTo(id) */
+                return 1;
+        }
+        return 0;
 }
 
 //TODO vrr exit node: release vrr node memory

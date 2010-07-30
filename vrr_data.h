@@ -42,7 +42,7 @@ void vrr_data_init(void);
  */
 u_int rt_get_next(u_int dest);
 u_int rt_get_next_exclude(u_int dest, u_int src);
-void rt_add_route(struct routing_table_entry new_entry);
+int rt_add_route(struct routing_table_entry new_entry);
 int rt_remove_nexts(u_int route_hop_to_remove);
 
 
@@ -60,6 +60,7 @@ int rt_remove_nexts(u_int route_hop_to_remove);
 int pset_add(u_int node, const mac_addr mac, u_int status, u_int active);
 int pset_remove(u_int node);
 u_int pset_get_status(u_int node);
+int pset_lookup_mac(mac_addr mac, u32 *node);
 int pset_get_mac(u_int node, mac_addr mac);
 int pset_update_status(u_int node, u_int new_status, u_int active);
 int pset_inc_fail_count(struct pset_list *node);
