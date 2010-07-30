@@ -82,3 +82,16 @@ fail:
         return NET_XMIT_DROP;
        
 }
+
+void vrr_forward_setup_req(struct sk_buff *skb, 
+			  const struct vrr_header *vh,
+			  u_int nh)
+{	
+	struct ethhdr *dev_header;
+
+	dev_header = (struct ethhdr *)skb_network_header(skb);
+        memcpy(dev_header->h_dest, nh, MAC_ADDR_LEN);
+        
+	dev_queue_xmit(skb);
+
+}

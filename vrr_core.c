@@ -266,7 +266,6 @@ int send_hpkt()
 	build_header(skb, &hpkt);
 	vrr_output(skb, vrr_get_node(), VRR_HELLO);
                    
-
         kfree(hpkt_data);
 	return 0;
  fail:
@@ -274,6 +273,30 @@ int send_hpkt()
         kfree(hpkt_data);
 	return -1;
 }
+
+/*build and send a setup request*/
+int send_setup_req(u_int src, u_int dest, u_int proxy)
+{
+        u8 proxy_mac[ETH_ALEN];
+	struct sk_buff *skb;
+	struct vrr_packet setup_req_pkt;
+  	int vset_size;
+	u_int *vset;
+        u_int *setup_req_data;
+
+	pset_get_mac(proxy_id, proxy_mac);
+
+  	vset_size = vset_get_all(vset);	
+ 
+	setup_req_data = sizeof(u_int) * (
+        
+
+
+        	
+	return 1;
+
+}
+
 
 int set_vrr_id(u_int vrr_id)
 {
@@ -372,19 +395,6 @@ struct vrr_node* vrr_get_node()
  	return vrr;
 }
 
-/*build and send a setup request*/
-int send_setup_req()
-{
-	//struct sk_buff *skb;
-	//struct vrr_packet *set_req;
-	//set_req->pkt_type = VRR_SETUP;
-	//build_header(skb, set_req);
-	//vrr_output(skb, VRR_SETUP_REQ);int pset_state_init(void);
-
-
-	return 1;
-
-}
 
 //TODO vrr exit node: release vrr node memory
 //                    release pset_state memory

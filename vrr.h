@@ -179,6 +179,9 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 
 // forward packet to id closest to dest in rt
 int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh);
+void vrr_forward_setup_req(struct sk_buff *skb, 
+ 		           const struct vrr_header *vh,
+		           u_int next_hop);
 
 /*
  * Functions provided by vrr_core.c
@@ -197,7 +200,6 @@ int send_setup_req(void);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
-
 
 /* 
  * Functions to handle pset state
