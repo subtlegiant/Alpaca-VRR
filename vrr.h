@@ -118,10 +118,6 @@ struct vrr_node {
 	u8 version;
         char *dev_name;
 	int active;
-	//*rt = //pointer to the routing table
-	//*vset = //pointer to vset structure
-	//*pset = //pointer to a pset structure that maintains
-	// the states of pset connections
 };
 
 struct vrr_packet {
@@ -129,6 +125,7 @@ struct vrr_packet {
 	u_int dst; //the destination id
 	u16 data_len; //data being sent
 	u8 pkt_type; //hello message, setup, setup_req etc
+     	mac_addr dest_mac;  
 };
 
 struct vrr_sock {
@@ -196,7 +193,7 @@ struct vrr_node *vrr_get_node(void);
 
 // Vrr packet handling
 int send_hpkt(void);
-int send_setup_req(void);
+int send_setup_req(u_int src, u_int dest, u_int proxy);
 int send_setup_msg(void);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);

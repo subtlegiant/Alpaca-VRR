@@ -32,7 +32,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 
 	if (type == VRR_HELLO)
                 memcpy(&header.h_dest, dev->broadcast, MAC_ADDR_LEN);
-	else if (type == VRR_DATA)
+	else if (type == VRR_DATA || type == VRR_SETUP_REQ)
 		memcpy(&header.h_dest, vh->dest_mac, MAC_ADDR_LEN);
 
 	VRR_DBG("header dest added");

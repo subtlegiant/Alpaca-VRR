@@ -162,6 +162,9 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 			header.dest_mac[i] = 0xff;
 		}
 	}
+        else if (vpkt->pkt_type == VRR_SETUP_REQ) 
+		memcpy(&header.dest_mac, vpkt->dest_mac, MAC_ADDR_LEN);
+     	
 	//add header
 	memcpy(skb_push(skb, sizeof(struct vrr_header)), &header,
 	       sizeof(struct vrr_header));
@@ -281,20 +284,59 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
 	struct sk_buff *skb;
 	struct vrr_packet setup_req_pkt;
   	int vset_size;
+        int data_size;
+        int i, p;
 	u_int *vset;
         u_int *setup_req_data;
 
-	pset_get_mac(proxy_id, proxy_mac);
+	WARN_ATOMIC;
 
-  	vset_size = vset_get_all(vset);	
+	pset_get_mac(proxy, proxy_mac);
+
+  	vset_size = vset_get_all(vset);
+        data_size = sizeof(u_int) * (vset_size + 3);	
  
-	setup_req_data = sizeof(u_int) * (
+	setup_req_data = kmalloc(data_size, GFP_KERNEL);
         
+        VRR_DBG("setup request src id: %x", src);
+        setup_req_data[p++] = htonl(src);
+        
+        VRR_DBG("setup request dst id: %x", dest);
+        setup_req_data[p++] = htonl(dest);
 
+        VRR_DBG("setup request proxy id: %x", proxy);
+        setup_req_data[p++] = htonl(proxy);
 
+        for (i = 0; i < vset_size; ++i) {
+                VRR_DBG("vset[%x]: %x", i, vset[i]); 
+		setup_req_data[p++] = htonl(vset[i]); 
+     	}
+        
+	skb = vrr_skb_alloc(data_size, GFP_KERNEL);
+	if (skb)
+                memcpy(skb_put(skb, data_size), setup_req_data, data_size);
+        else
+		goto fail;
+
+	setup_req_pkt.src = src;
+        setup_req_pkt.dst = dest;
+        setup_req_pkt.data_len = data_size;
+	setup_req_pkt.pkt_type = VRR_SETUP_REQ;
+        memcpy(&setup_req_pkt.dest_mac, proxy_mac, MAC_ADDR_LEN); 
+        
+        build_header(skb, &setup_req_pkt);
+        vrr_output(skb, vrr_get_node(), VRR_SETUP_REQ);
+	
+	kfree(setup_req_data);
+        kfree(vset);
+  	kfree(proxy_mac);
+  	return 0;
+
+fail:
+	VRR_ERR("skb allocation failed");
+        kfree(setup_req_data);
+        return -1;
         	
-	return 1;
-
 }
 
 
