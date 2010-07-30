@@ -11,6 +11,9 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 #include "vrr.h"
 #include "vrr_data.h"
 
+#define DIR_LEFT	0
+#define DIR_RIGHT	1
+
 //My Node
 static u_int ME;
 
@@ -40,7 +43,8 @@ static pset_list_t pset;
 typedef struct vset_list {
 	struct list_head	list;
 	u_int			node;
-	int			diff;
+	int			diff_left;
+        int			diff_right;
 } vset_list_t;
 
 static int vset_size = 0;
@@ -440,29 +444,51 @@ u_int pset_get_proxy() {
 /*
  * Virtual set functions
  */
-int vset_add(u_int node)
+int vset_add(u32 node, u32 *rem)
 {
-	vset_list_t * tmp;
-	struct list_head * pos;
+	vset_list_t *tmp;
+	struct list_head *pos;
+        u32 bumped;
+        int radius = VRR_VSET_SIZE / 2;
+        unsigned long flags;
 
-	list_for_each(pos, &vset.list){	//check to see if node already exists
+        spin_lock_irqsave(&vrr_vset_lock, flags);
+
+	list_for_each(pos, &vset.list) {
 		tmp= list_entry(pos, vset_list_t, list);
-		if (tmp->node == node) {
-			return 0;
-		}
+		if (tmp->node == node)
+                        goto out_err;
 	}
 
-	if (vset_size < VRR_VSET_SIZE) {
-		insert_vset_node(node);
-		return 1;
-	}
+        insert_vset_node(node);
+        vset_bump(rem);
 
+out:
+        spin_unlock_irqrestore(&vrr_vset_lock, flags);
+        return 1;
 
-	//TODO: find possible node to remove to add the new node
-	//u_int get_diff(u_int x, u_int y)
-	//u_int half = UINT_MAX/2;
-	vset_size += 0;
-	return 0;
+out_err:
+        spin_unlock_irqrestore(&vrr_vset_lock, flags);
+        return 0;
+}
+
+void vset_bump(u32 *rem) {
+	vset_list_t *tmp;
+	struct list_head *pos;
+        int radius = VRR_VSET_SIZE / 2;
+        u32 bump_left, bump_right;
+        u32 max_left, max_right;
+        
+        u32 left[radius], right[radius];
+        u32 left_diff[radius], right_diff[radius];
+        int li = 0, ri = 0;
+        
+        list_for_each(pos, &vset.list) {
+                tmp = list_entry(pos, vset_list_t, list);
+                /* get min left_diff nodes for left */
+                
+                /* get <max diff, node> for right */
+        }
 }
 
 int vset_remove(u_int node)
@@ -528,6 +554,10 @@ void insert_vset_node(u_int node)
 	vset_list_t * tmp;
 	tmp = (vset_list_t *) kmalloc(sizeof(vset_list_t), GFP_ATOMIC);
 	tmp->node = node;
+        tmp->diff_left = (node > ME) ? 
+                UINT_MAX - get_diff(node, ME) : get_diff(node, ME);
+        tmp_>diff_right = (node < ME) ? 
+                UINT_MAX - get_diff(node, ME) : get_diff(node, ME);
 	list_add(&(tmp->list), &(vset.list));
 	vset_size += 1;
 }
