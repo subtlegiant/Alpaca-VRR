@@ -65,6 +65,7 @@ int pset_update_status(u_int node, u_int new_status, u_int active);
 int pset_inc_fail_count(struct pset_list *node);
 int pset_reset_fail_count(u_int node);
 struct list_head *pset_head(void);
+u_int pset_get_proxy(void);
 
 /* Functions for virtual set of nodes
  * vset_add : Adds a node to the virtual set.  Returns 0 on failure
