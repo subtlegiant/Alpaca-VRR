@@ -176,7 +176,7 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 
 // forward packet to id closest to dest in rt
 int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh);
-void vrr_forward_setup_req(struct sk_buff *skb, 
+int vrr_forward_setup_req(struct sk_buff *skb, 
  		           const struct vrr_header *vh,
 		           u_int next_hop);
 

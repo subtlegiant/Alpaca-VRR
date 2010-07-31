@@ -8,6 +8,7 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 #include <linux/list.h>
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
+#include <linux/sort.h>
 #include "vrr.h"
 #include "vrr_data.h"
 
@@ -57,6 +58,8 @@ void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint)
 u_int rt_search(struct rb_root *root, u_int value);
 u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src);
 u_int route_list_helper(routes_list_t * r_list, u_int endpoint);
+
+int vset_bump(u32 *rem);
 
 void vrr_data_init()
 {
@@ -266,6 +269,7 @@ int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
 	pset_list_t * tmp;
 	struct list_head * pos;
 	unsigned long flags;
+
 	spin_lock_irqsave(&vrr_pset_lock, flags);
 
 	list_for_each(pos, &pset.list){	//check to see if node already exists
@@ -275,7 +279,6 @@ int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
 			return 0;
 		}
 	}
-
 
 	tmp = (pset_list_t *) kmalloc(sizeof(pset_list_t), GFP_ATOMIC);
 
@@ -448,47 +451,113 @@ int vset_add(u32 node, u32 *rem)
 {
 	vset_list_t *tmp;
 	struct list_head *pos;
-        u32 bumped;
-        int radius = VRR_VSET_SIZE / 2;
         unsigned long flags;
 
         spin_lock_irqsave(&vrr_vset_lock, flags);
 
 	list_for_each(pos, &vset.list) {
-		tmp= list_entry(pos, vset_list_t, list);
+		tmp = list_entry(pos, vset_list_t, list);
 		if (tmp->node == node)
                         goto out_err;
 	}
 
         insert_vset_node(node);
-        vset_bump(rem);
+	vset_size++;
+        if (!vset_bump(rem))
+		goto out_nobump;
 
-out:
         spin_unlock_irqrestore(&vrr_vset_lock, flags);
         return 1;
 
+out_nobump:
+	spin_unlock_irqrestore(&vrr_vset_lock, flags);
+	return 0;
+
 out_err:
         spin_unlock_irqrestore(&vrr_vset_lock, flags);
-        return 0;
+        return -1;
 }
 
-void vset_bump(u32 *rem) {
+int cmp_diff(const void *a, const void *b)
+{
+	if (a < b)
+		return -1;
+	if (a > b)
+		return 1;
+	return 0;
+}
+
+int vset_bump(u32 *rem) {
 	vset_list_t *tmp;
-	struct list_head *pos;
+	struct list_head *pos, *q;
         int radius = VRR_VSET_SIZE / 2;
-        u32 bump_left, bump_right;
-        u32 max_left, max_right;
-        
-        u32 left[radius], right[radius];
-        u32 left_diff[radius], right_diff[radius];
-        int li = 0, ri = 0;
-        
+	int i = 0;
+	u32 left[vset_size], right[vset_size];
+
+	if (vset_size <= VRR_VSET_SIZE)
+		return 0;
+
+	/* Fill arrays with diffs in both directions */
         list_for_each(pos, &vset.list) {
                 tmp = list_entry(pos, vset_list_t, list);
-                /* get min left_diff nodes for left */
-                
-                /* get <max diff, node> for right */
+		left[i] = tmp->diff_left;
+		right[i++] = tmp->diff_right;
         }
+	
+	/* Sort arrays */
+	sort(left, vset_size, sizeof(u32), &cmp_diff, NULL);
+	sort(right, vset_size, sizeof(u32), &cmp_diff, NULL);
+	
+	/* Bump the node with left[radius] and right[radius] */
+	list_for_each_safe(pos, q, &vset.list) {
+		tmp = list_entry(pos, vset_list_t, list);
+		if (tmp->diff_left == left[radius] &&
+		    tmp->diff_right == right[radius]) {
+			*rem = tmp->node;
+			list_del(pos);
+			kfree(tmp);
+			return 1;
+		}
+	}
+	
+	VRR_ERR("Our infallible bumping algorithm has failed!");
+	return -1;
+}
+
+int vset_should_add(u32 node)
+{
+	vset_list_t *tmp;
+	struct list_head *pos;
+	u32 left[vset_size], right[vset_size];
+	u32 diff_left = (node > ME) ? 
+		UINT_MAX - get_diff(node, ME) : get_diff(node, ME);
+	u32 diff_right = (node < ME) ?
+		UINT_MAX - get_diff(node, ME) : get_diff(node, ME);
+	int radius = VRR_VSET_SIZE / 2;
+	int i = 0;
+	unsigned long flags;
+
+	if (vset_size < VRR_VSET_SIZE)
+		return 1;
+	
+	spin_lock_irqsave(&vrr_vset_lock, flags);
+	list_for_each(pos, &vset.list) {
+		tmp = list_entry(pos, vset_list_t, list);
+		left[i] = tmp->diff_left;
+		right[i++] = tmp->diff_right;
+	}
+	spin_unlock_irqrestore(&vrr_vset_lock, flags);
+
+	sort(left, vset_size, sizeof(u32), &cmp_diff, NULL);
+	sort(right, vset_size, sizeof(u32), &cmp_diff, NULL);
+	
+	for (i = 0; i < radius; i++) {
+		if (left[i] > diff_left)
+			return 1;
+		if (right[i] > diff_right)
+			return 1;
+	}
+	return 0;
 }
 
 int vset_remove(u_int node)
@@ -497,7 +566,6 @@ int vset_remove(u_int node)
 	struct list_head * pos, *q;
 	unsigned long flags;
 	spin_lock_irqsave(&vrr_vset_lock, flags);
-
 
 	list_for_each_safe(pos, q, &vset.list) {
 		tmp= list_entry(pos, vset_list_t, list);
@@ -556,7 +624,7 @@ void insert_vset_node(u_int node)
 	tmp->node = node;
         tmp->diff_left = (node > ME) ? 
                 UINT_MAX - get_diff(node, ME) : get_diff(node, ME);
-        tmp_>diff_right = (node < ME) ? 
+        tmp->diff_right = (node < ME) ? 
                 UINT_MAX - get_diff(node, ME) : get_diff(node, ME);
 	list_add(&(tmp->list), &(vset.list));
 	vset_size += 1;

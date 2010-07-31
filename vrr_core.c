@@ -285,8 +285,8 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
 	struct vrr_packet setup_req_pkt;
   	int vset_size;
         int data_size;
-        int i, p;
-	u_int *vset;
+        int i, p = 0;
+	u_int *vset = NULL;
         u_int *setup_req_data;
 
 	WARN_ATOMIC;
@@ -438,7 +438,7 @@ struct vrr_node* vrr_get_node()
 
 
 int vrr_add(u32 src, u_int vset_size, u_int *vset) {
-	u_int i, proxy;
+	u32 i, proxy, rem, ret;
 	
 	for (i = 0; i < vset_size; i++)
 		if (vset_should_add(vset[i])) {
@@ -446,8 +446,10 @@ int vrr_add(u32 src, u_int vset_size, u_int *vset) {
                         /* Send <setup_req, me, id, proxy, vset> to proxy */
 		}
         if (src && vset_should_add(src)) {
-                vset_add(src);
-                /* for each (id in rem) TearDownPathTo(id) */
+                ret = vset_add(src, &rem);
+		if (ret > 0) {
+			/* TearDownPathTo(rem) */
+		}
                 return 1;
         }
         return 0;
