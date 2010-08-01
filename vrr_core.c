@@ -33,6 +33,7 @@ int vrr_node_init()
         vrr->version = 0x1;
         vrr->dev_name = "eth1"; //hard coded for now
 	vrr->active = 0;
+        vrr->timeout = 0;
              
         //generate random id
         get_random_bytes(&vrr->id, VRR_ID_LEN);   
@@ -103,16 +104,24 @@ void detect_failures() {
                 tmp = list_entry(pos, pset_list_t, list);
                 status = tmp->status;
                 count = pset_inc_fail_count(tmp);
-                if (count >= VRR_FAIL_FACTOR && status != PSET_FAILED) {
+                if (count >= VRR_FAIL_TIMEOUT && status != PSET_FAILED) {
                         VRR_DBG("Marking failed node: %x", tmp->node);
                         tmp->status = PSET_FAILED;
+                        pset_state_update();
                 }
-                if (count >= 2 * VRR_FAIL_FACTOR) {
+                if (count >= 2 * VRR_FAIL_TIMEOUT) {
                         VRR_DBG("Deleting failed node: %x", tmp->node);
                         list_del(pos);
                         kfree(tmp);
                 }
         }
+}
+
+void active_timeout() {
+        if (vrr->active)
+                return;
+        if (++vrr->timeout == VRR_ACTIVE_TIMEOUT)
+                vrr->active = 1;
 }
 
 int send_setup_msg()
@@ -294,25 +303,28 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
 	pset_get_mac(proxy, proxy_mac);
 
   	vset_size = vset_get_all(vset);
-        data_size = sizeof(u_int) * (vset_size + 3);	
+        data_size = sizeof(u_int) * (vset_size + 2);
  
-	setup_req_data = kmalloc(data_size, GFP_KERNEL);
+	setup_req_data = kmalloc(data_size, GFP_ATOMIC);
         
-        VRR_DBG("setup request src id: %x", src);
-        setup_req_data[p++] = htonl(src);
+        /* VRR_DBG("setup request src id: %x", src); */
+        /* setup_req_data[p++] = htonl(src); */
         
-        VRR_DBG("setup request dst id: %x", dest);
-        setup_req_data[p++] = htonl(dest);
+        /* VRR_DBG("setup request dst id: %x", dest); */
+        /* setup_req_data[p++] = htonl(dest); */
 
-        VRR_DBG("setup request proxy id: %x", proxy);
+        VRR_DBG("proxy id: %x", proxy);
         setup_req_data[p++] = htonl(proxy);
+
+        VRR_DBG("vset size: %x", vset_size);
+        setup_req_data[p++] = htonl(vset_size);
 
         for (i = 0; i < vset_size; ++i) {
                 VRR_DBG("vset[%x]: %x", i, vset[i]); 
 		setup_req_data[p++] = htonl(vset[i]); 
      	}
         
-	skb = vrr_skb_alloc(data_size, GFP_KERNEL);
+	skb = vrr_skb_alloc(data_size, GFP_ATOMIC);
 	if (skb)
                 memcpy(skb_put(skb, data_size), setup_req_data, data_size);
         else

@@ -86,7 +86,7 @@ fail:
 int vrr_forward_setup_req(struct sk_buff *skb, 
 			  const struct vrr_header *vh,
 			  u_int nh)
-{	
+{
 	struct ethhdr *dev_header;
 	unsigned char dest_mac[ETH_ALEN];
 

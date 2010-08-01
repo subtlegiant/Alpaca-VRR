@@ -47,8 +47,13 @@
 #define VRR_SRC         0x10
 #define VRR_DST         0x18
 
-#define VRR_HPKT_DELAY  5000    /* milliseconds */
-#define VRR_FAIL_FACTOR	4       /* multiple of delay to mark failed nodes */
+#define VRR_HPKT_DELAY  	5000	/* milliseconds */
+#define VRR_FAIL_TIMEOUT	4	/* multiple of delay to mark
+                                         * failed nodes */
+#define VRR_ACTIVE_TIMEOUT	8	/* multiple of delay to activate
+                                	* this node without virtual
+                                	* neighbors */
+
 #define VRR_ID_LEN	4
 
 #define u8 unsigned char
@@ -118,6 +123,7 @@ struct vrr_node {
 	u8 version;
         char *dev_name;
 	int active;
+        int timeout;
 };
 
 struct vrr_packet {
@@ -228,6 +234,7 @@ int get_pset_pending_mac_size(void);
 void pset_state_update(void);
 
 void detect_failures(void);
+void active_timeout(void);
 
 
 #endif	/* _VRR_H */

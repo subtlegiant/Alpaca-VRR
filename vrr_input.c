@@ -55,8 +55,8 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 	int trans = TRANS_MISSING;
 	int cur_state = pset_get_status(src);
 	int next_state;
-	int me = get_vrr_id();
         unsigned char src_addr[ETH_ALEN];
+        struct vrr_node *me = vrr_get_node();
 
 	VRR_DBG("Packet type: VRR_HELLO");
 
@@ -100,7 +100,7 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
                 for (i = 0; i < la_size; i++) {
                         VRR_DBG("la[%x]: %x", i, ntohl(la[i]));
                         la[i] = ntohl(la[i]);
-                        if (la[i] == me)
+                        if (la[i] == me->id)
                                 trans = TRANS_LINKED;
                 }
         }
@@ -111,7 +111,7 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
                 for (i = 0; i < lna_size; i++) {
                         VRR_DBG("lna[%x]: %x", i, ntohl(lna[i]));
                         lna[i] = ntohl(lna[i]);
-                        if (lna[i] == me)
+                        if (lna[i] == me->id)
                                 trans = TRANS_LINKED;
                 }
         }
@@ -122,7 +122,7 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
                 for (i = 0; i < p_size; i++) {
                         VRR_DBG("p[%x]: %x", i, ntohl(p[i]));
                         p[i] = ntohl(p[i]);
-                        if (p[i] == me)
+                        if (p[i] == me->id)
                                 trans = TRANS_PENDING;
                 }
         }
@@ -147,6 +147,10 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 
         /* Update pset state cache */
         pset_state_update();
+
+        if (active && next_state == PSET_LINKED) {
+                send_setup_req(me->id, me->id, src);
+        }
 	
 	/* if src is in pset
 	   do nothing
@@ -171,6 +175,7 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 
 	nh = rt_get_next_exclude(dst, src);
 	if (nh) {
+                VRR_DBG("Forwarding to next hop: %x", nh);
 		vrr_forward_setup_req(skb, vh, nh);
 		return 0;
 	}
@@ -245,7 +250,7 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
                 return 0;
         }
 
-        if (pset_get_status(vh->dest_id) == PSET_UNKNOWN)
+        if (pset_get_status(dst) == PSET_UNKNOWN)
                 nh = rt_get_next(proxy);
         else
                 nh = vh->dest_id;

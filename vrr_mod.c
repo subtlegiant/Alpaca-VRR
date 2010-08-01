@@ -229,6 +229,7 @@ static void vrr_workqueue_handler(struct work_struct *work)
 {
         send_hpkt();
         detect_failures();
+        active_timeout();
 }
 
 static DECLARE_WORK(vrr_workqueue, vrr_workqueue_handler);
