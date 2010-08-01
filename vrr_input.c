@@ -47,12 +47,13 @@ static int vrr_rcv_data(struct sk_buff *skb, const struct vrr_header *vh)
 static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 {
 	int active;
-	u_int la_size, lna_size, p_size, i;
-	u_int la[VRR_PSET_SIZE], lna[VRR_PSET_SIZE], p[VRR_PSET_SIZE];
+        u32 src = ntohl(vh->src_id);
+	u32 la_size, lna_size, p_size, i;
+	u32 la[VRR_PSET_SIZE], lna[VRR_PSET_SIZE], p[VRR_PSET_SIZE];
 	size_t offset = sizeof(struct vrr_header);
-        size_t step = sizeof(u_int);
+        size_t step = sizeof(u32);
 	int trans = TRANS_MISSING;
-	int cur_state = pset_get_status(vh->src_id);
+	int cur_state = pset_get_status(src);
 	int next_state;
 	int me = get_vrr_id();
         unsigned char src_addr[ETH_ALEN];

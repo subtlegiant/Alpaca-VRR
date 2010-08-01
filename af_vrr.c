@@ -234,7 +234,7 @@ static struct proto_ops vrr_proto_ops = {
 };
 
 static int vrr_create(struct net *net, struct socket *sock,
-		      int protocol)
+		      int protocol, int kern)
 {
 	struct sock *sk;
 	struct vrr_sock *vrr;
