@@ -32,7 +32,7 @@ static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
 		       char *buf)
 {
 	u_int value = get_vrr_id();
-	return sprintf(buf, "%d", value);
+	return sprintf(buf, "%u\n", value);
 }
 
 static ssize_t pset_active_show(struct kobject *kobj, 
