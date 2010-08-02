@@ -36,7 +36,7 @@ int vrr_node_init()
         vrr->timeout = 0;
              
         //generate random id
-        get_random_bytes(&vrr->id, VRR_ID_LEN);   
+        get_random_bytes(&vrr->id, VRR_ID_LEN);
 
 	return 0;
 }
@@ -124,9 +124,55 @@ void active_timeout() {
                 vrr->active = 1;
 }
 
-int send_setup_msg()
+int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
+               u32 *vset, u32 to)
 {
-	return 1;
+        struct sk_buff *skb;
+	struct net_device *dev;
+        struct vrr_node *me = vrr_get_node();
+        struct vrr_packet setup_pkt;
+        int data_size = sizeof(u32) * (vset_size + 2);
+        u32 setup_data[data_size];
+        int i, p = 0;
+        unsigned char dest_mac[ETH_ALEN];
+
+        if (to == me->id) {
+                dev = dev_get_by_name(&init_net, me->dev_name);
+                memcpy(dest_mac, dev->dev_addr, ETH_ALEN);
+        } else if (!pset_get_mac(to, dest_mac)) {
+                VRR_ERR("Sending setup msg to unconnected node: %x", to);
+                return -1;
+        }
+        
+        VRR_DBG("path_id: %x", path_id);
+        setup_data[p++] = htonl(path_id);
+
+        VRR_DBG("proxy: %x", proxy);
+        setup_data[p++] = htonl(proxy);
+
+        for (i = 0; i < vset_size; i++) {
+                VRR_DBG("vset[%x]: %x", i, vset[i]); 
+		setup_data[p++] = htonl(vset[i]);
+     	}
+
+        skb = vrr_skb_alloc(data_size, GFP_ATOMIC);
+        if (skb) {
+                memcpy(skb_put(skb, data_size), setup_data, data_size);
+        } else {
+                VRR_ERR("Failed to alloc skb.");
+                return -1;
+        }
+
+        setup_pkt.src = src;
+        setup_pkt.dst = dest;
+        setup_pkt.data_len = data_size;
+        setup_pkt.pkt_type = VRR_SETUP;
+        memcpy(setup_pkt.dest_mac, dest_mac, ETH_ALEN);
+        
+        build_header(skb, &setup_pkt);
+        vrr_output(skb, vrr_get_node(), VRR_SETUP);
+
+	return 0;
 }
 
 /* take a packet node and build header. Add header to sk_buff for
@@ -154,7 +200,6 @@ int send_setup_msg()
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 {
 	struct vrr_header header;
-	int i;
 
 	header.vrr_version = vrr->version;
 	header.pkt_type = vpkt->pkt_type;
@@ -162,17 +207,14 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
 	header.data_len = htons(vpkt->data_len);
 	header.free = 0;
 	header.h_csum = 0;
-	header.src_id = htonl(vrr->id);
+	header.src_id = htonl(vpkt->src);
 	header.dest_id = htonl(vpkt->dst);
 
 	//determine what kind of header
-	if (vpkt->pkt_type == VRR_HELLO) {
-		for (i = 0; i < ETH_ALEN; ++i) {
-			header.dest_mac[i] = 0xff;
-		}
-	}
-        else if (vpkt->pkt_type == VRR_SETUP_REQ) 
-		memcpy(&header.dest_mac, vpkt->dest_mac, MAC_ADDR_LEN);
+	if (vpkt->pkt_type == VRR_HELLO)
+                memset(header.dest_mac, -1, ETH_ALEN);
+        else
+		memcpy(header.dest_mac, vpkt->dest_mac, ETH_ALEN);
      	
 	//add header
 	memcpy(skb_push(skb, sizeof(struct vrr_header)), &header,
@@ -289,7 +331,7 @@ int send_hpkt()
 /*build and send a setup request*/
 int send_setup_req(u_int src, u_int dest, u_int proxy)
 {
-        u8 proxy_mac[ETH_ALEN];
+        unsigned char proxy_mac[ETH_ALEN];
 	struct sk_buff *skb;
 	struct vrr_packet setup_req_pkt;
   	int vset_size;
@@ -302,7 +344,7 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
 
 	pset_get_mac(proxy, proxy_mac);
 
-  	vset_size = vset_get_all(vset);
+  	vset_size = vset_get_all(&vset);
         data_size = sizeof(u_int) * (vset_size + 2);
  
 	setup_req_data = kmalloc(data_size, GFP_ATOMIC);
@@ -320,25 +362,27 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
         setup_req_data[p++] = htonl(vset_size);
 
         for (i = 0; i < vset_size; ++i) {
-                VRR_DBG("vset[%x]: %x", i, vset[i]); 
-		setup_req_data[p++] = htonl(vset[i]); 
+                VRR_DBG("vset[%x]: %x", i, vset[i]);
+		setup_req_data[p++] = htonl(vset[i]);
      	}
         
 	skb = vrr_skb_alloc(data_size, GFP_ATOMIC);
-	if (skb)
+	if (skb) {
                 memcpy(skb_put(skb, data_size), setup_req_data, data_size);
-        else
+        }
+        else {
 		goto fail;
+        }
 
 	setup_req_pkt.src = src;
         setup_req_pkt.dst = dest;
         setup_req_pkt.data_len = data_size;
 	setup_req_pkt.pkt_type = VRR_SETUP_REQ;
-        memcpy(&setup_req_pkt.dest_mac, proxy_mac, MAC_ADDR_LEN); 
-        
+        memcpy(setup_req_pkt.dest_mac, proxy_mac, ETH_ALEN);
+
         build_header(skb, &setup_req_pkt);
         vrr_output(skb, vrr_get_node(), VRR_SETUP_REQ);
-	
+
 	kfree(setup_req_data);
         kfree(vset);
   	return 0;
@@ -449,22 +493,38 @@ struct vrr_node* vrr_get_node()
 }
 
 
-int vrr_add(u32 src, u_int vset_size, u_int *vset) {
+int vrr_add(u32 src, u32 vset_size, u32 *vset)
+{
 	u32 i, proxy, rem, ret;
+        u32 me = get_vrr_id();
 	
 	for (i = 0; i < vset_size; i++)
 		if (vset_should_add(vset[i])) {
 			proxy = pset_get_proxy();
-                        /* Send <setup_req, me, id, proxy, vset> to proxy */
+                        if (proxy) {
+                                VRR_DBG("Sending setup_req: me=%x, vset[%x]=%x, proxy=%x", me, i, vset[i], proxy);
+                                send_setup_req(me, vset[i], proxy);
+                        }
 		}
         if (src && vset_should_add(src)) {
+                VRR_DBG("Adding src: %x", src);
                 ret = vset_add(src, &rem);
 		if (ret > 0) {
 			/* TearDownPathTo(rem) */
+                        VRR_DBG("Should tear down path to %x", rem);
 		}
                 return 1;
         }
         return 0;
+}
+
+u32 vrr_new_path_id()
+{
+        u32 id;
+
+        get_random_bytes(&id, sizeof(u32));
+        /* TODO: Check for existence in our vset */
+        return id;
 }
 
 //TODO vrr exit node: release vrr node memory

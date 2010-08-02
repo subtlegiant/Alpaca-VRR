@@ -32,7 +32,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 
 	if (type == VRR_HELLO)
                 memcpy(&header.h_dest, dev->broadcast, MAC_ADDR_LEN);
-	else if (type == VRR_DATA || type == VRR_SETUP_REQ)
+	else
 		memcpy(&header.h_dest, vh->dest_mac, MAC_ADDR_LEN);
 
 	VRR_DBG("header dest added");
@@ -46,13 +46,22 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 
 	VRR_DBG("added to skb");
 
+        /* Check destination for local delivery */
+        if (!memcmp(dev->dev_addr, vh->dest_mac, ETH_ALEN)) {
+                VRR_DBG("Delivering locally");
+                skb_push(skb, skb->data - skb_network_header(skb));
+                vrr_rcv(skb, dev, NULL, NULL);
+                goto out_success;
+        }
+
 	dev_queue_xmit(skb);
 
         VRR_DBG("transmit done");
-	
+
+out_success:	
 	return NET_XMIT_SUCCESS;
 
- out: 
+out: 
 	return err;
 }
 

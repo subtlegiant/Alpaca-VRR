@@ -12,9 +12,6 @@ and linked list at each node: http://isis.poly.edu/kulesh/stuff/src/klist/
 #include "vrr.h"
 #include "vrr_data.h"
 
-#define DIR_LEFT	0
-#define DIR_RIGHT	1
-
 //My Node
 static u_int ME;
 
@@ -462,7 +459,6 @@ int vset_add(u32 node, u32 *rem)
 	}
 
         insert_vset_node(node);
-	vset_size++;
         if (!vset_bump(rem))
 		goto out_nobump;
 
@@ -494,6 +490,7 @@ int vset_bump(u32 *rem) {
 	int i = 0;
 	u32 left[vset_size], right[vset_size];
 
+        VRR_DBG("vset_size: %x", vset_size);
 	if (vset_size <= VRR_VSET_SIZE)
 		return 0;
 
@@ -586,22 +583,23 @@ int vset_remove(u_int node)
 // int current_vset_size;
 // u_int * vset_all = NULL;
 // current_vset_size = vset_get_all(vset_all);
-int vset_get_all(u_int * vset_all)
+int vset_get_all(u_int **vset_all)
 {
-	vset_list_t * tmp;
-	struct list_head * pos;
+	vset_list_t *tmp;
+	struct list_head *pos;
 	int i = 0;
 	int l_vset_size;
 	unsigned long flags;
+
 	spin_lock_irqsave(&vrr_vset_lock, flags);
 	l_vset_size = vset_size;
 
-	vset_all = (u_int *) kmalloc(l_vset_size * sizeof(u_int), GFP_ATOMIC);
+        VRR_DBG("l_vset_size: %x", l_vset_size);
+	*vset_all = (u_int *) kmalloc(l_vset_size * sizeof(u_int), GFP_ATOMIC);
 
 	list_for_each(pos, &vset.list){	
-		tmp= list_entry(pos, vset_list_t, list);
-		vset_all[i] = tmp->node;
-		i++;
+		tmp = list_entry(pos, vset_list_t, list);
+		(*vset_all)[i++] = tmp->node;
 	}
 	spin_unlock_irqrestore(&vrr_vset_lock, flags);
 	return l_vset_size;
@@ -627,6 +625,6 @@ void insert_vset_node(u_int node)
         tmp->diff_right = (node < ME) ? 
                 UINT_MAX - get_diff(node, ME) : get_diff(node, ME);
 	list_add(&(tmp->list), &(vset.list));
-	vset_size += 1;
+	vset_size++;
 }
 

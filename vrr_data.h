@@ -78,6 +78,6 @@ u_int pset_get_proxy(void);
 int vset_add(u32 node, u32 *rem);
 int vset_should_add(u32 node);
 int vset_remove(u_int node);
-int vset_get_all(u_int * vset_all);
+int vset_get_all(u_int **vset_all);
 
 #endif	/* _VRR_DATA_H */

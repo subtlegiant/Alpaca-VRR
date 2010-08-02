@@ -169,6 +169,7 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 	u32 *vset = NULL, *ovset = NULL;
 	size_t offset = sizeof(struct vrr_header);
 	size_t step = sizeof(u_int);
+        struct vrr_node *me = vrr_get_node();
 
         src = ntohl(vh->src_id);
         dst = ntohl(vh->dest_id);
@@ -206,9 +207,11 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 		vset[i] = ntohl(vset[i]);
 	}
 
-	ovset_size = vset_get_all(ovset);
+	ovset_size = vset_get_all(&ovset);
 	if (vrr_add(src, vset_size, vset)) {
 		/* Send <setup, me, src, NewPid(), proxy, ovset> to me */
+                send_setup(me->id, src, vrr_new_path_id(), proxy, 
+                           ovset_size, ovset, me->id);
 		goto out;
 	}
 
@@ -287,8 +290,9 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
 		vset[i] = ntohl(vset[i]);
 	}
 
-        if (nh != 0) {
+        if (nh) {
                 /* Send <setup, src, dst, pid, proxy, vset'> to nh */
+                send_setup(src, dst, pid, proxy, vset_size, vset, nh);
                 return 0;
         }
 

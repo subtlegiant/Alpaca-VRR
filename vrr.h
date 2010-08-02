@@ -200,10 +200,14 @@ struct vrr_node *vrr_get_node(void);
 // Vrr packet handling
 int send_hpkt(void);
 int send_setup_req(u_int src, u_int dest, u_int proxy);
-int send_setup_msg(void);
+int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
+               u32 *vset, u32 to);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
 int vrr_add(u32 src, u_int vset_size, u_int *vset);
+
+/* Various utilities */
+u32 vrr_new_path_id(void);
 
 /* 
  * Functions to handle pset state
