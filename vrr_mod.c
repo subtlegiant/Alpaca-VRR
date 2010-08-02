@@ -32,169 +32,112 @@ static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
 			   char *buf)
 {
 	u_int value = get_vrr_id();
-	return sprintf(buf, "%u\n", value);
+	return sprintf(buf, "%x\n", value);
 }
 
-static ssize_t pset_active_show(struct kobject *kobj, 
-				struct kobj_attribute *attr,
-				char *buf)
+static ssize_t pset_show_real(
+	struct kobject *kobj, 
+	struct kobj_attribute *attr,
+	char *buf,
+	u_int* (*get_pset_func)(void),
+	int (*get_pset_size_func)(void),
+	mac_addr* (*get_pset_mac_func)(void),
+	int (*get_pset_mac_size_func)(void))
 {
-	int *pset_a;
-	mac_addr *pset_a_mac;
-	int pset_a_size, pset_a_mac_size;
 	int i;
-	int buf_size;
-	int pset_a_len;
-	char *temp_buf;
 
-	pset_a = get_pset_active();
-	pset_a_size = get_pset_active_size();
-	pset_a_mac = get_pset_active_mac();
-	pset_a_mac_size = get_pset_active_mac_size();
-	buf_size = pset_a_size + pset_a_mac_size + 3;
-	pset_a_len = pset_a_size/sizeof(u32);
-	temp_buf = kmalloc(buf_size, GFP_KERNEL);
+	// VRR id in pset.
+	u_int *vrr_id = get_pset_func();
 
-	if (!temp_buf) 
-		goto nem; //not enough memory
+	// Number of entries in pset.
+	int pset_len = get_pset_size_func()/sizeof(u32);
 
-	// each mac address is mapped to a pset id by
-	// index, therefore they should and have to be
-	// the same size
-	if ((pset_a_mac_size/sizeof(mac_addr)) != pset_a_len) 
+	// Mac address in pset.
+	mac_addr *mac = get_pset_mac_func();
+
+	// Max length of one line in the sysfs export.
+	//
+	// This includes no null, and is calculated thus.
+	// length(uint_32)    = 8
+	// length(space)      = 1
+	// length(mac_addr)   = 17
+	// length(newline)    = 1
+	// length(line_len)   = length(uint_32 + space + mac_addr + newline)
+	//                    = 27
+	//
+	int line_len = 27;
+
+	// Check precondition: In the pset, there must be a one-to-one mapping
+	// between vrr id's and mac addresses.
+	if ((get_pset_mac_size_func()/sizeof(mac_addr)) != pset_len) 
 		goto exit;
 
-	for (i=0; i < pset_a_len; ++i) {
-		sprintf(temp_buf, "%d %02x:%02x:%02x:%02x:%02x:%02x\n",
-			(u32)*(pset_a),
-			(*pset_a_mac)[0],
-			(*pset_a_mac)[1],
-			(*pset_a_mac)[2],
-			(*pset_a_mac)[3],
-			(*pset_a_mac)[4],
-			(*pset_a_mac)[5]);
-		++pset_a;
-		++pset_a_mac;
-		buf = strncat(buf, temp_buf, buf_size);
+	// Build string to be exported to sysfs.
+	for (i = 0; i < pset_len; ++i) {
+		// For snprint, n must include trailing null.
+		snprintf(buf + line_len * i,
+			line_len + 1,
+			"%x %02x:%02x:%02x:%02x:%02x:%02x\n",
+			(u32)*(vrr_id),
+			(*mac)[0],
+			(*mac)[1],
+			(*mac)[2],
+			(*mac)[3],
+			(*mac)[4],
+			(*mac)[5]);
+		++vrr_id;
+		++mac;
 	}
 	
-	kfree(temp_buf);
-	return pset_a_len * buf_size;
+	return line_len * pset_len + 1; // +1 for trailing null
 exit:
-	kfree(temp_buf);
 	VRR_DBG("Pset mac and id arrays unequal size: BAD!");
 	return -1;
-
-nem:
-	return -ENOMEM;
-}
-				   
-static ssize_t pset_not_active_show(struct kobject *kobj, 
-				struct kobj_attribute *attr,
-				char *buf)
-{
-	int *pset_na;
-	mac_addr *pset_na_mac;
-	int pset_na_size, pset_na_mac_size;
-	int i;
-	int buf_size;
-	int pset_na_len;
-	char *temp_buf;
-
-	pset_na = get_pset_not_active();
-	pset_na_size = get_pset_not_active_size();
-	pset_na_mac = get_pset_not_active_mac();
-	pset_na_mac_size = get_pset_not_active_mac_size();
-	buf_size = pset_na_size + pset_na_mac_size + 3;
-	pset_na_len = pset_na_size/sizeof(u32);
-	temp_buf = kmalloc(buf_size, GFP_KERNEL);
-
-	if (!temp_buf) 
-		goto nem; //not enough memory
-
-	// each mac address is mapped to a pset id by
-	// index, therefore they should and have to be
-	// the same size
-	if ((pset_na_mac_size/sizeof(mac_addr)) != pset_na_len) 
-		goto exit;
-
-	for (i=0; i < pset_na_len; ++i) {
-		sprintf(temp_buf, "%d %02x:%02x:%02x:%02x:%02x:%02x\n",
-			(u32)*(pset_na),
-			(*pset_na_mac)[0],
-			(*pset_na_mac)[1],
-			(*pset_na_mac)[2],
-			(*pset_na_mac)[3],
-			(*pset_na_mac)[4],
-			(*pset_na_mac)[5]);
-		++pset_na;
-		++pset_na_mac;
-		buf = strncat(buf, temp_buf, buf_size);
-	}
-	
-	kfree(temp_buf);
-	return pset_na_len * buf_size;
-exit:
-	kfree(temp_buf);
-	VRR_DBG("Pset mac and id arrays unequal size: BAD!");
-	return -1;
-
-nem:
-	return -ENOMEM;
 }
 
-static ssize_t pset_pending_show(struct kobject *kobj, 
-				struct kobj_attribute *attr,
-				char *buf)
+static ssize_t pset_active_show(
+	struct kobject *kobj, 
+	struct kobj_attribute *attr,
+	char *buf)
 {
-	int *pset_p;
-	mac_addr *pset_p_mac;
-	int pset_p_size, pset_p_mac_size;
-	int i;
-	int buf_size;
-	int pset_p_len;
-	char *temp_buf;
+	return pset_show_real(
+			kobj,
+			attr,
+			buf,
+			get_pset_active,
+			get_pset_active_size,
+			get_pset_active_mac,
+			get_pset_active_mac_size);
+}
 
-	pset_p = get_pset_pending();
-	pset_p_size = get_pset_pending_size();
-	pset_p_mac = get_pset_pending_mac();
-	pset_p_mac_size = get_pset_pending_mac_size();
-	buf_size = pset_p_size + pset_p_mac_size + 3;
-	pset_p_len = pset_p_size/sizeof(u32);
-	temp_buf = kmalloc(buf_size, GFP_KERNEL);
+static ssize_t pset_not_active_show(
+	struct kobject *kobj, 
+	struct kobj_attribute *attr,
+	char *buf)
+{
+	return pset_show_real(
+			kobj,
+			attr,
+			buf,
+			get_pset_not_active,
+			get_pset_not_active_size,
+			get_pset_not_active_mac,
+			get_pset_not_active_mac_size);
+}
 
-	if (!temp_buf) 
-		goto nem; //not enough memory
-
-	// each mac address is mapped to a pset id by
-	// index, therefore they should and have to be
-	// the same size
-	if ((pset_p_mac_size/sizeof(mac_addr)) != pset_p_len) 
-		goto exit;
-
-	for (i=0; i<pset_p_len; ++i) {
-		sprintf(temp_buf, "%d %02x:%02x:%02x:%02x:%02x:%02x\n",
-			(u32)*(pset_p),
-			(*pset_p_mac)[0],
-			(*pset_p_mac)[1],
-			(*pset_p_mac)[2],
-			(*pset_p_mac)[3],
-			(*pset_p_mac)[4],
-			(*pset_p_mac)[5]);
-		++pset_p;
-		++pset_p_mac;
-		buf = strncat(buf, temp_buf, buf_size);
-	}
-	
-	kfree(temp_buf);
-	return pset_p_len * buf_size;
-exit:
-	kfree(temp_buf);
-	VRR_DBG("Pset mac and id arrays unequal size: BAD!");
-	return -1;
-
-nem:
-	return -ENOMEM;
+static ssize_t pset_pending_show(
+	struct kobject *kobj, 
+	struct kobj_attribute *attr,
+	char *buf)
+{
+	return pset_show_real(
+			kobj,
+			attr,
+			buf,
+			get_pset_pending,
+			get_pset_pending_size,
+			get_pset_pending_mac,
+			get_pset_pending_mac_size);
 }
 
 static struct kobj_attribute id_attr =
