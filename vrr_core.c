@@ -131,7 +131,7 @@ int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
 	struct net_device *dev;
         struct vrr_node *me = vrr_get_node();
         struct vrr_packet setup_pkt;
-        int data_size = sizeof(u32) * (vset_size + 2);
+        int data_size = sizeof(u32) * (vset_size + 3);
         u32 setup_data[data_size];
         int i, p = 0;
         unsigned char dest_mac[ETH_ALEN];
@@ -149,6 +149,9 @@ int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
 
         VRR_DBG("proxy: %x", proxy);
         setup_data[p++] = htonl(proxy);
+
+        VRR_DBG("vset_size: %x", vset_size);
+        setup_data[p++] = htonl(vset_size);
 
         for (i = 0; i < vset_size; i++) {
                 VRR_DBG("vset[%x]: %x", i, vset[i]); 
