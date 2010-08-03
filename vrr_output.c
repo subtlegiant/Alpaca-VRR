@@ -49,7 +49,8 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
         /* Check destination for local delivery */
         if (!memcmp(dev->dev_addr, vh->dest_mac, ETH_ALEN)) {
                 VRR_DBG("Delivering locally");
-                skb_push(skb, skb->data - skb_network_header(skb));
+		skb_set_mac_header(skb, 0);
+		skb_set_network_header(skb, sizeof(struct ethhdr));
                 vrr_rcv(skb, dev, NULL, NULL);
                 goto out_success;
         }

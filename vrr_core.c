@@ -394,7 +394,6 @@ fail:
         	
 }
 
-
 int set_vrr_id(u_int vrr_id)
 {
 	if (vrr_id == 0) {
@@ -500,8 +499,8 @@ int vrr_add(u32 src, u32 vset_size, u32 *vset)
 	
 	for (i = 0; i < vset_size; i++)
 		if (vset_should_add(vset[i])) {
-			proxy = pset_get_proxy();
-                        if (proxy) {
+			ret = pset_get_proxy(&proxy);
+                        if (ret) {
                                 VRR_DBG("Sending setup_req: me=%x, vset[%x]=%x, proxy=%x", me, i, vset[i], proxy);
                                 send_setup_req(me, vset[i], proxy);
                         }

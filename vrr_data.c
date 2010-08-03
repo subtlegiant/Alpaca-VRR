@@ -421,7 +421,7 @@ struct list_head *pset_head()
 	return &pset.list;
 }
 
-u_int pset_get_proxy() {
+int pset_get_proxy(u32 *proxy) {
 	u_int active[VRR_PSET_SIZE];
 	u_int i = 0, r;
         pset_list_t *tmp;
@@ -436,9 +436,14 @@ u_int pset_get_proxy() {
 		}
 	}
         spin_unlock_irqrestore(&vrr_pset_lock, flags);
+	
+	if (!i)
+		return 0;
+
 	get_random_bytes(&r, 4);
 	r = r % i;
-	return active[r];
+	*proxy = active[r];
+	return 1;
 }
 
 /*

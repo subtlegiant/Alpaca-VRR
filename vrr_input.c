@@ -250,13 +250,14 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
         in_pset = pset_lookup_mac(src_addr, &sender);
         if (!in_pset) {
                 /* TearDownPath(<pid, src>, null) */
+		VRR_DBG("Sender is not in pset!");
                 return 0;
         }
 
         if (pset_get_status(dst) == PSET_UNKNOWN)
                 nh = rt_get_next(proxy);
         else
-                nh = vh->dest_id;
+                nh = dst;
 
         rt.ea = src;
         rt.eb = dst;
@@ -266,6 +267,7 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
 
         if (!rt_add_route(rt)) {
                 /* TearDownPath(<pid, src>, null) */
+		VRR_DBG("Couldn't add route. Should tear down path to %x", src);
                 return 0;
         }
 
@@ -298,6 +300,10 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
 
         if (dst == get_vrr_id() && vrr_add(src, vset_size, vset))
                 return 0;
+	else {
+		VRR_DBG("Coudn't add %x. Should tear down %x.", src, src);
+		return 0;
+	}
 
         /* TearDownPath(<pid, src>, null>) */
 	return 0;
