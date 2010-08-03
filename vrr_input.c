@@ -247,11 +247,17 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
         offset += step;
 
         eth_header_parse(skb, src_addr);
-        in_pset = pset_lookup_mac(src_addr, &sender);
-        if (!in_pset) {
-                /* TearDownPath(<pid, src>, null) */
-		VRR_DBG("Sender is not in pset!");
-                return 0;
+
+        if (!memcmp(skb->dev->dev_addr, src_addr, ETH_ALEN)) {
+                VRR_DBG("Received setup from myself");
+                sender = get_vrr_id();
+        } else {
+                in_pset = pset_lookup_mac(src_addr, &sender);
+                if (!in_pset) {
+                        /* TearDownPath(<pid, src>, null) */
+                        VRR_DBG("Sender is not in pset!");
+                        return 0;
+                }
         }
 
         if (pset_get_status(dst) == PSET_UNKNOWN)
