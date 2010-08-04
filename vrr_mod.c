@@ -150,7 +150,6 @@ static struct kobj_attribute pset_pending_attr =
 	__ATTR(pset_pending, 0666, pset_pending_show, NULL);
 
 
-
 static struct attribute *attrs[] = {
 	&id_attr.attr,
 	&pset_active_attr.attr,
