@@ -23,6 +23,9 @@ static int hello_trans[4][3] = {
 	{PSET_FAILED,	PSET_PENDING,	PSET_PENDING},	/* failed */
 	{PSET_FAILED,	PSET_LINKED,	PSET_PENDING}};	/* unknown */
 
+static int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
+			       u32 vset_size, u32 *vset);
+
 static int vrr_rcv_data(struct sk_buff *skb, const struct vrr_header *vh)
 {
 	/* u_int nh = NextHop(rt, dst)          //find next hop */
@@ -148,7 +151,7 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
         /* Update pset state cache */
         pset_state_update();
 
-        if (active && next_state == PSET_LINKED) {
+        if (!me->active && active && next_state == PSET_LINKED) {
                 send_setup_req(me->id, me->id, src);
         }
 	
@@ -169,7 +172,6 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 	u32 *vset = NULL, *ovset = NULL;
 	size_t offset = sizeof(struct vrr_header);
 	size_t step = sizeof(u_int);
-        struct vrr_node *me = vrr_get_node();
 
         src = ntohl(vh->src_id);
         dst = ntohl(vh->dest_id);
@@ -210,8 +212,8 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 	ovset_size = vset_get_all(&ovset);
 	if (vrr_add(src, vset_size, vset)) {
 		/* Send <setup, me, src, NewPid(), proxy, ovset> to me */
-                send_setup(me->id, src, vrr_new_path_id(), proxy, 
-                           ovset_size, ovset, me->id);
+                vrr_local_rcv_setup(src, vrr_new_path_id(), proxy,
+				    ovset_size, ovset);
 		goto out;
 	}
 
@@ -232,6 +234,7 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
         int in_pset, i;
         rt_entry rt;
         unsigned char src_addr[ETH_ALEN];
+	struct vrr_node *me = vrr_get_node();
 
 	VRR_DBG("Packet type: VRR_SETUP");
 
@@ -304,9 +307,10 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
                 return 0;
         }
 
-        if (dst == get_vrr_id() && vrr_add(src, vset_size, vset))
+        if (dst == get_vrr_id() && vrr_add(src, vset_size, vset)) {
+		me->active = 1;
                 return 0;
-	else {
+	} else {
 		VRR_DBG("Coudn't add %x. Should tear down %x.", src, src);
 		return 0;
 	}
@@ -375,6 +379,43 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 	return NET_RX_SUCCESS;
 drop:
 	return NET_RX_DROP;
+}
+
+int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
+			u32 vset_size, u32 *vset)
+{
+	u32 src = get_vrr_id();
+	u32 nh;
+	rt_entry rt;
+
+	VRR_DBG("Receiving setup message from myself.");
+
+	if (pset_get_status(dst) == PSET_UNKNOWN)
+		nh = rt_get_next(proxy);
+	else
+		nh = dst;
+
+	rt.ea = src;
+	rt.eb = dst;
+	rt.na = src;
+	rt.nb = nh;
+	rt.path_id = pid;
+
+	if (!rt_add_route(rt)) {
+		/* TearDownPath(<pid, src>, null) */
+		VRR_DBG("Couldn't add route. Should tear down path to %x", src);
+		return 0;
+	}
+
+	if (nh) {
+		VRR_DBG("Sending setup message: "
+			"src:%x dst:%x pid:%x proxy:%x vset_size:%x nh:%x",
+			src, dst, pid, proxy, vset_size, nh);
+		send_setup(src, dst, pid, proxy, vset_size, vset, nh);
+		return 0;
+	}
+
+	return 0;
 }
 
 /*DEFINITIONS

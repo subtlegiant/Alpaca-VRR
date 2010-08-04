@@ -137,6 +137,7 @@ int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
         unsigned char dest_mac[ETH_ALEN];
 
         if (to == me->id) {
+		/* TODO: change me to use local_rcv_setup */
                 dev = dev_get_by_name(&init_net, me->dev_name);
                 memcpy(dest_mac, dev->dev_addr, ETH_ALEN);
         } else if (!pset_get_mac(to, dest_mac)) {
@@ -497,7 +498,7 @@ struct vrr_node* vrr_get_node()
 
 int vrr_add(u32 src, u32 vset_size, u32 *vset)
 {
-	u32 i, proxy, rem, ret;
+	u32 i, proxy, rem = 0, ret;
         u32 me = get_vrr_id();
 	
 	for (i = 0; i < vset_size; i++)
