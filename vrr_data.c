@@ -21,15 +21,15 @@ static DEFINE_SPINLOCK(vrr_vset_lock);
 static DEFINE_SPINLOCK(vrr_pset_lock);
 
 //Routing Table Setup
-typedef struct routes_list {
-	rt_entry		route;
-	struct list_head	list;
-} routes_list_t;
+/* typedef struct routes_list { */
+/* 	rt_entry		route; */
+/* 	struct list_head	list; */
+/* } routes_list_t; */
 
 typedef struct rt_node {
 	struct rb_node	node;
-	u_int		route;
-	routes_list_t	routes;
+	u32		endpoint;
+	rt_entry	routes;
 } rt_node_t;
 
 static struct rb_root rt_root;
@@ -51,10 +51,10 @@ static vset_list_t vset;
 //internal functions
 u_int get_diff(u_int x, u_int y);
 void insert_vset_node(u_int node);
-void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint);
-u_int rt_search(struct rb_root *root, u_int value);
-u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src);
-u_int route_list_helper(routes_list_t * r_list, u_int endpoint);
+static rt_node_t *rt_find_insert_node(struct rb_root *root, u32 endpoint);
+u_int rt_search(struct rb_root *root, u32 endpoint);
+u_int rt_search_exclude(struct rb_root *root, u32 endpoint, u32 src);
+u_int route_list_search(rt_entry* r_list, u32 endpoint);
 
 int vset_bump(u32 *rem);
 
@@ -72,9 +72,9 @@ void vrr_data_init()
  * Returns the next hop in the routing table, given the destination
  * parameter.  Returns 0 when no route exists.
  */
-u_int rt_get_next(u_int dest)
+u_int rt_get_next(u32 dest)
 {
-	u_int next;
+	u32 next;
 	unsigned long flags;
 	spin_lock_irqsave(&vrr_rt_lock, flags);
 	next = rt_search(&rt_root, dest);
@@ -86,21 +86,21 @@ u_int rt_get_next(u_int dest)
 /*
  * Helper function to search the Red-Black Tree routing table
  */
-u_int rt_search(struct rb_root *root, u_int value)
+u32 rt_search(struct rb_root *root, u32 endpoint)
 {
 	struct rb_node *node = root->rb_node;	// top of the tree
 
 	while (node) {
-		rt_node_t *curr = rb_entry(node, rt_node_t, node);
+		rt_node_t *this = rb_entry(node, rt_node_t, node);
 
-		if (curr->route > value)
+		if (endpoint < this->endpoint)
 			node = node->rb_left;
-		else if (curr->route < value)
+		else if (endpoint > this->endpoint)
 			node = node->rb_right;
 		else {
-			if (curr->route == ME)
+			if (this->endpoint == ME)
 				return 0;
-			return route_list_helper(&curr->routes, value);
+			return route_list_search(&this->routes, endpoint);
 		}
 	}
 	return 0;
@@ -124,26 +124,26 @@ u_int rt_get_next_exclude(u_int dest, u_int src)
 /*
  * Helper function to search the Red-Black Tree routing table, while excluding the src node
  */
-u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src)
+u_int rt_search_exclude(struct rb_root *root, u32 endpoint, u32 src)
 {
 	struct rb_node *node = root->rb_node;	// top of the tree
-	rt_node_t *curr = NULL;
+	rt_node_t *this = NULL;
 	rt_node_t *prev = NULL;
 
 	while (node) {
-		prev = curr;
-		curr = rb_entry(node, rt_node_t, node);
+		prev = this;
+		this = rb_entry(node, rt_node_t, node);
 
-		if (curr->route == src && prev)
-			return route_list_helper(&prev->routes, value);
-		else if (curr->route > value)
+		if (this->endpoint == src && prev)
+			return route_list_search(&prev->routes, endpoint);
+		else if (endpoint < this->endpoint)
 			node = node->rb_left;
-		else if (curr->route < value)
+		else if (endpoint > this->endpoint)
 			node = node->rb_right;
 		else {
-			if (curr->route == ME)
+			if (this->endpoint == ME)
 				return 0;
-			return route_list_helper(&curr->routes, value);
+			return route_list_search(&this->routes, endpoint);
 		}
 	}
 	return 0;
@@ -152,18 +152,18 @@ u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src)
 /* Helper function to search a list of route entries of a particular
  * node, for the next path node with the highest path_id
  */
-u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
+u_int route_list_search(rt_entry *r_list, u32 endpoint)
 {
-	routes_list_t * tmp = NULL;
-	routes_list_t * max_entry = NULL;
-	struct list_head * pos;
-	int max_path = -1;
+	rt_entry *tmp = NULL;
+	rt_entry *max_entry = NULL;
+	struct list_head *pos;
+	u32 max_path = 0;
 
 	list_for_each(pos, &r_list->list){
-		tmp= list_entry(pos, routes_list_t, list);
-		if (tmp->route.path_id > max_path) {
+		tmp = list_entry(pos, rt_entry, list);
+		if (tmp->path_id > max_path) {
 			max_entry = tmp;
-			max_path = tmp->route.path_id;
+			max_path = tmp->path_id;
 		}
 	}
 	
@@ -173,17 +173,18 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
                 return 0;
         }
 
-	if(get_diff(endpoint, max_entry->route.ea) < 
-           get_diff(endpoint, max_entry->route.eb))
-		if (max_entry->route.ea != ME)
-			return max_entry->route.na;
+	if(get_diff(endpoint, max_entry->ea) < 
+           get_diff(endpoint, max_entry->eb))
+		if (max_entry->ea != ME)
+			return max_entry->na;
 		else 
-			return max_entry->route.nb;
+			return max_entry->nb;
 	else 
-		if (max_entry->route.eb != ME)		
-			return max_entry->route.nb;
+		if (max_entry->eb != ME)		
+			return max_entry->nb;
 		else 
-			return max_entry->route.na;
+			return max_entry->na;
+	return 0;
 }
 
 
@@ -191,69 +192,96 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
  * Adds a route to the rb tree.  Might add two different entries if there
  * are both ea and eb values for the route.
  */
-int rt_add_route(struct routing_table_entry new_entry)
+int rt_add_route(u32 ea, u32 eb, u32 na, u32 nb, u32 path_id)
 {
-        /* TODO: return 0 if there is already an entry with the same
-         * ea and path_id */
-
-	if (new_entry.ea) {
-		rt_insert_helper(&rt_root, new_entry, new_entry.ea);
-	}
-	if (new_entry.eb) {
-		rt_insert_helper(&rt_root, new_entry, new_entry.eb);
-	}
-        return 1;
-}
-
-/* Helper function to add new entries to routing table.
- */
-void rt_insert_helper(struct rb_root * root, rt_entry new_entry, u_int endpoint)
-{
-	struct rb_node **link = &root->rb_node;
-	struct rb_node *parent=NULL;
-	rt_node_t * curr=NULL;
-	int exists = 0;
+	rt_node_t *insert = NULL;
+	rt_entry *route = NULL;
+	int ret = 1;
 	unsigned long flags;
+
+        /* TODO: return 0 if there is already an entry with the same
+         * ea and pid */
+	
 
 	spin_lock_irqsave(&vrr_rt_lock, flags);
 
-	while (*link) //Find node to insert at
-	{
-		parent = *link;
-		curr = rb_entry(parent, rt_node_t, node);
-
-		if (curr->route > endpoint)
-			link = &(*link)->rb_left;
-		else if (curr->route < endpoint)
-			link = &(*link)->rb_right;
-		else {
-			link=NULL;
-			exists=1;
-		}	
+	if (ea) {
+		/* rt_insert_helper(&rt_root, new_entry, new_entry->ea); */
+		insert = rt_find_insert_node(&rt_root, ea);
+		if (!insert)
+			goto out_err;
+		route = (rt_entry *) kmalloc(sizeof(rt_entry), GFP_ATOMIC);
+		if (!route)
+			goto out_err;
+		route->ea = ea;
+		route->eb = eb;
+		route->na = na;
+		route->nb = nb;
+		route->path_id = path_id;
+		list_add(&(route->list), &(insert->routes.list));
 	}
-
-	if(exists) { //add new_entry to curr->routes
-		routes_list_t * tmp;
-
-		tmp = (routes_list_t *) kmalloc(sizeof(routes_list_t), GFP_ATOMIC);
-		memcpy(&tmp->route, &new_entry, sizeof(rt_entry));
-
-		list_add(&(tmp->list), &(curr->routes.list));
+	if (eb) {
+		insert = rt_find_insert_node(&rt_root, eb);
+		if (!insert)
+			goto out_err;
+		route = (rt_entry *) kmalloc(sizeof(rt_entry), GFP_ATOMIC);
+		if (!route)
+			goto out_err;
+		route->ea = ea;
+		route->eb = eb;
+		route->na = na;
+		route->nb = nb;
+		route->path_id = path_id;
+		list_add(&(route->list), &(insert->routes.list));
 	}
-	else {
-		//create new rt_entry_t node
-		rt_node_t * new_node = (rt_node_t *) kmalloc(sizeof(rt_node_t), GFP_ATOMIC);
-		new_node->route = endpoint;
-		//initialize new routes list
-		INIT_LIST_HEAD( &(new_node->routes.list) );
-		//copy new_entry to this new list
-		memcpy(&new_node->routes.route, &new_entry, sizeof(rt_entry));
+	goto out;
 
-		// Put the new node there
-		rb_link_node(&(new_node->node), parent, link);
-		rb_insert_color(&(new_node->node), root);
-	}
+out_err:
+	ret = 0;
+out:
 	spin_unlock_irqrestore(&vrr_rt_lock, flags);
+	return ret;
+}
+
+/**
+ * Find the node to insert the route. Returns node to add route
+ * to. Must hold vrr_rt_lock prior to calling.
+ */
+static rt_node_t *rt_find_insert_node(struct rb_root *root, u32 endpoint)
+{
+	struct rb_node **new = &(root->rb_node);
+	struct rb_node *parent = NULL;
+	rt_node_t *this = NULL;
+	rt_node_t *new_node = NULL;
+	int cmp;
+
+	while (*new)
+	{
+		this = rb_entry(*new, rt_node_t, node);
+		cmp = endpoint < this->endpoint ? -1 :
+			endpoint > this->endpoint ? 1 : 0;
+		parent = *new;
+
+		if (cmp < 0)
+			new = &((*new)->rb_left);
+		else if (cmp > 0)
+			new = &((*new)->rb_right);
+		else {
+			return this;
+		}
+	}
+
+	/* Node doesn't exist, let's create one. */
+	new_node = (rt_node_t *)kmalloc(sizeof(rt_node_t), GFP_ATOMIC);
+	if (!new_node)
+		return NULL;
+	new_node->endpoint = endpoint;
+	INIT_LIST_HEAD(&(new_node->routes.list));
+	
+	/* Insert the node */
+	rb_link_node(&new_node->node, parent, new);
+	rb_insert_color(&new_node->node, root);
+	return new_node;
 }
 
 

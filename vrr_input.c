@@ -294,7 +294,6 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
         size_t offset = sizeof(struct vrr_header);
         size_t step = sizeof(u32);
         int in_pset, i;
-        rt_entry rt;
         unsigned char src_addr[ETH_ALEN];
 	struct vrr_node *me = vrr_get_node();
 
@@ -330,13 +329,7 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
         else
                 nh = dst;
 
-        rt.ea = src;
-        rt.eb = dst;
-        rt.na = sender;
-        rt.nb = nh;
-        rt.path_id = pid;
-
-        if (!rt_add_route(rt)) {
+        if (!rt_add_route(src, dst, sender, nh, pid)) {
                 /* TearDownPath(<pid, src>, null) */
 		VRR_DBG("Couldn't add route. Should tear down path to %x", src);
                 return 0;
@@ -441,7 +434,6 @@ int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
 {
 	u32 src = get_vrr_id();
 	u32 nh;
-	rt_entry rt;
 
 	VRR_DBG("Receiving setup message from myself.");
 
@@ -450,13 +442,7 @@ int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
 	else
 		nh = dst;
 
-	rt.ea = src;
-	rt.eb = dst;
-	rt.na = src;
-	rt.nb = nh;
-	rt.path_id = pid;
-
-	if (!rt_add_route(rt)) {
+	if (!rt_add_route(src, dst, src, nh, pid)) {
 		/* TearDownPath(<pid, src>, null) */
 		VRR_DBG("Couldn't add route. Should tear down path to %x", src);
 		return 0;

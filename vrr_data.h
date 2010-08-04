@@ -10,11 +10,12 @@
 
 //Struct for use in VRR Routing Table
 typedef struct routing_table_entry {
-	u_int ea;		//endpoint A
-	u_int eb;		//endpoint B
-	u_int na;		//next A
-	u_int nb;		//next B
+	u32 ea;		//endpoint A
+	u32 eb;		//endpoint B
+	u32 na;		//next A
+	u32 nb;		//next B
 	int path_id;		//Path ID
+	struct list_head list;
 } rt_entry;
 
 //Physical Set Setup
@@ -42,7 +43,7 @@ void vrr_data_init(void);
  */
 u_int rt_get_next(u_int dest);
 u_int rt_get_next_exclude(u_int dest, u_int src);
-int rt_add_route(struct routing_table_entry new_entry);
+int rt_add_route(u32 ea, u32 eb, u32 na, u32 nb, u32 path_id);
 int rt_remove_nexts(u_int route_hop_to_remove);
 
 
