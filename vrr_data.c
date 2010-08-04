@@ -152,14 +152,14 @@ u_int rt_search_exclude(struct rb_root *root, u_int value, u_int src)
 /* Helper function to search a list of route entries of a particular
  * node, for the next path node with the highest path_id
  */
-u_int route_list_helper(routes_list_t * r_list, u_int endpoint) 
+u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
 {
 	routes_list_t * tmp = NULL;
 	routes_list_t * max_entry = NULL;
 	struct list_head * pos;
 	int max_path = -1;
 
-	list_for_each(pos, &r_list->list){	
+	list_for_each(pos, &r_list->list){
 		tmp= list_entry(pos, routes_list_t, list);
 		if (tmp->route.path_id > max_path) {
 			max_entry = tmp;
@@ -167,9 +167,15 @@ u_int route_list_helper(routes_list_t * r_list, u_int endpoint)
 		}
 	}
 	
-	if(get_diff(endpoint,max_entry->route.ea) < 
-           get_diff(endpoint,max_entry->route.eb))
-		if (max_entry->route.ea != ME)		
+        if (!max_entry) {
+                /* TODO: Should take the node as a pointer argument,
+                 * since 0 is a valid ID. */
+                return 0;
+        }
+
+	if(get_diff(endpoint, max_entry->route.ea) < 
+           get_diff(endpoint, max_entry->route.eb))
+		if (max_entry->route.ea != ME)
 			return max_entry->route.na;
 		else 
 			return max_entry->route.nb;

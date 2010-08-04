@@ -26,8 +26,6 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 		err = -1;
 		goto out;
 	}
-        VRR_DBG("dev initialized");
-
 	skb->dev = dev;
 
 	if (type == VRR_HELLO)
@@ -35,16 +33,10 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 	else
 		memcpy(&header.h_dest, vh->dest_mac, MAC_ADDR_LEN);
 
-	VRR_DBG("header dest added");
-
 	memcpy(&header.h_source, dev->dev_addr, MAC_ADDR_LEN);
 	header.h_proto = htons(ETH_P_VRR);
 
-	VRR_DBG("header done");
-
 	memcpy(skb_push(skb, sizeof(header)), &header, sizeof(header));
-
-	VRR_DBG("added to skb");
 
         /* Check destination for local delivery */
         if (!memcmp(dev->dev_addr, vh->dest_mac, ETH_ALEN)) {
@@ -57,7 +49,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 
 	dev_queue_xmit(skb);
 
-        VRR_DBG("transmit done");
+        VRR_DBG("Output done");
 
 out_success:	
 	return NET_XMIT_SUCCESS;
