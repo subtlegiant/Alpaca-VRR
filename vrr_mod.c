@@ -140,6 +140,33 @@ static ssize_t pset_pending_show(
 			get_pset_pending_mac_size);
 }
 
+static ssize_t vset_show (struct kobject *kobj,
+			struct kobj_attribute *attr,
+			char *buf)
+{
+	u32 vset_size, *vset;
+	int i;
+
+        // u32 = 8
+        // \n  = 1
+        // line_len = u32 + /n
+	int line_len = 9;
+
+	vset_size = vset_get_all(&vset);
+
+	for (i = 0; i < vset_size; ++i) {
+		snprintf(buf + line_len * i,
+			line_len + 1,
+			"%x\n",
+                        (u32)*(vset));
+		++vset;
+	}
+
+	return line_len * vset_size + 1;
+}
+                               
+
+
 static struct kobj_attribute id_attr =
 	 __ATTR(id, 0666, id_show, NULL);
 static struct kobj_attribute pset_active_attr = 
@@ -148,6 +175,8 @@ static struct kobj_attribute pset_not_active_attr =
 	__ATTR(pset_not_active, 0666, pset_not_active_show, NULL);
 static struct kobj_attribute pset_pending_attr =
 	__ATTR(pset_pending, 0666, pset_pending_show, NULL);
+static struct kobj_attribute vset_attr = 
+	__ATTR(vset, 0666, vset_show, NULL);
 
 
 static struct attribute *attrs[] = {
@@ -155,6 +184,7 @@ static struct attribute *attrs[] = {
 	&pset_active_attr.attr,
 	&pset_not_active_attr.attr,
 	&pset_pending_attr.attr,
+	&vset_attr.attr,
 	NULL,
 };
 
