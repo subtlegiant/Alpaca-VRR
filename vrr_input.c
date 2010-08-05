@@ -25,6 +25,8 @@ static int hello_trans[4][3] = {
 
 static int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
 			       u32 vset_size, u32 *vset);
+static int vrr_local_rcv_setup_fail(u32 dst, u32 proxy,
+				u32 vset_size, u32 *vset);
 
 static int vrr_rcv_data(struct sk_buff *skb, const struct vrr_header *vh)
 {
@@ -216,7 +218,11 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 				    ovset_size, ovset);
 		goto out;
 	}
-
+        else {
+		vrr_local_rcv_setup_fail(src, proxy, ovset_size,
+ 					ovset);
+		goto out;		
+	}
         /* Send <setup_fail, me, src, proxy, ovset> to me */
 
 out:
@@ -279,9 +285,7 @@ static int vrr_rcv_setup_fail(struct sk_buff *skb,
 
         if (dst == get_vrr_id()) {
 		vset[i+1] = ntohl(src);
-		if (vrr_add(src, vset_size, vset)) {
-	                return 0;
-		}
+ 		vrr_add(-1, vset_size, vset);
 	}
 
 	return 0;
@@ -458,6 +462,39 @@ int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
 
 	return 0;
 }
+
+int vrr_local_rcv_setup_fail(u32 dst, u32 proxy, u32 vset_size,
+				u32 *vset)
+{
+	u32 src = get_vrr_id();
+	u32 nh;
+        u32 ovset_size, *ovset;
+
+	ovset_size = 1;
+        ovset = kmalloc(vset_size * sizeof(u32), GFP_ATOMIC);
+
+	VRR_DBG("Receiving setup fail from myself.");
+
+	if (pset_get_status(dst) == PSET_UNKNOWN)
+		nh = rt_get_next(proxy);
+	else
+		nh = dst;
+
+        ovset[0] = dst;
+	vrr_add(-1, ovset_size, ovset);
+
+        if (nh) {
+		VRR_DBG("Sending setup_fail message: "
+			"src:%x dst:%x proxy:%x vset_size:%x nh:%x",
+			src, dst, proxy, vset_size, nh);
+ 		send_setup_fail(src, dst, proxy, vset_size, vset, nh);
+		return 0;
+	}
+
+	return 0;
+}
+
+	
 
 /*DEFINITIONS
  * me = local node

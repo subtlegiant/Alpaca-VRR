@@ -562,7 +562,7 @@ int vrr_add(u32 src, u32 vset_size, u32 *vset)
                                 send_setup_req(me, vset[i], proxy);
                         }
 		}
-        if (src && vset_should_add(src)) {
+        if (src != -1 && vset_should_add(src)) {
                 VRR_DBG("Adding src: %x", src);
                 ret = vset_add(src, &rem);
 		if (ret > 0) {
