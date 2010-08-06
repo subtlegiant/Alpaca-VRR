@@ -23,12 +23,12 @@
 #include <net/sock.h>
 
 #include "vrr.h"
+#include "vrr_data.h"
 
 static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
 			 int addrlen, long *timeo, int flags)
 {
 	struct socket *sock = sk->sk_socket;
-	struct vrr_sock *vrr = vrr_sk(sk);
 	int err = -EISCONN;
 
 	if (sock->state == SS_CONNECTED) {
@@ -48,9 +48,8 @@ static int __vrr_connect(struct sock *sk, struct sockaddr_vrr *addr,
 	if (addr->svrr_family != AF_VRR)
 		goto out;
 
+	sock->state = SS_CONNECTED;
 	err = 0;
-	vrr->src_addr = get_vrr_id();
-	vrr->dest_addr = addr->svrr_addr;
 
  out:
 	return err;
@@ -75,7 +74,6 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 		       struct msghdr *msg, size_t len, int flags)
 {
 	struct sock *sk = sock->sk;
-//	struct vrr_sock *vrr = vrr_sk(sk);
 	struct sockaddr_vrr *svrr = (struct sockaddr_vrr *)msg->msg_name;
 	struct sk_buff *skb;
 	size_t copied = 0;
@@ -99,8 +97,6 @@ static int vrr_recvmsg(struct kiocb *iocb, struct socket *sock,
 	if (err)
 		goto done;
  
-//	sock_recv_ts_and_drops(msg, sk, skb);
-
 	if (svrr) {
 		svrr->svrr_family = AF_VRR;
 		svrr->svrr_addr = vrr_hdr(skb)->dest_id;
@@ -124,93 +120,102 @@ void vrr_destroy_sock(struct sock *sk)
 	}
 }
 
-static int vrr_release(struct socket *sock)
-{
-	struct sock *sk = sock->sk;
-
-	if (sk) {
-		sock_orphan(sk);
-		sock_hold(sk);
-		sock_put(sk);
-	}
-
-	return 0;
-}
-
 static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 		       struct msghdr *msg, size_t len)
 {
-//	int addr_len = msg->msg_namelen;
-	int err = 0;
-	size_t sent = 0;
 	struct sk_buff *skb = NULL;
 	struct sock *sk = sock->sk;
-	struct sockaddr_vrr *addr = (struct sockaddr_vrr *)msg->msg_name;
+	struct sockaddr_vrr *dest = (struct sockaddr_vrr *)msg->msg_name;
 	struct vrr_packet pkt;
-//	struct vrr_sock *vrr = vrr_sk(sk);
+	u32 nh;
+	struct vrr_node *me = vrr_get_node();
+	size_t sent = 0;
+	int ret = -EINVAL;
 
-	WARN_ATOMIC;
+	if (unlikely(!dest))
+		return -EDESTADDRREQ;
 
-	if (sk->sk_shutdown & SEND_SHUTDOWN) {
-		return -EPIPE;
+	if (dest->svrr_addr != me->id) {
+		nh = rt_get_next(dest->svrr_addr);
+		if (!nh)
+			return -EHOSTUNREACH;
+
+		if (!pset_get_mac(nh, pkt.dest_mac))
+			return -EHOSTUNREACH;
 	}
 
-	err = -ENOBUFS;
+	if (iocb)
+		lock_sock(sk);
 
 	pkt.src = get_vrr_id();
-	pkt.dst = addr->svrr_addr;
+	pkt.dst = dest->svrr_addr;
 	pkt.pkt_type = VRR_DATA;
-	VRR_ERR("pkt members initialized.");
+	pkt.data_len = len;
 
 	/* Allocate an skb for sending */
-	skb = vrr_skb_alloc(len + VRR_MAX_HEADER, GFP_KERNEL);
+	skb = vrr_skb_alloc(len, GFP_KERNEL);
 	if (!skb) {
 		VRR_ERR("vrr_skb_alloc failed");
 		goto out_err;
 	}
-	VRR_ERR("vrr_skb_alloc succeeded.");
 
 	/* Build the vrr header */
-	err = build_header(skb, &pkt);
-	if (err) {
-		VRR_ERR("build_header failed");
+	ret = build_header(skb, &pkt);
+	if (ret)
 		goto out_err;
-	}
-	VRR_ERR("build_header succeeded.");
 
 	/* Copy data from userspace */
 	if (memcpy_fromiovec(skb_put(skb, len), msg->msg_iov, len)) {
 		VRR_ERR("memcpy_fromiovec failed");
-		err = -EFAULT;
+		ret = -EFAULT;
 		goto out;
 	}
-	VRR_ERR("memcpy_fromiovec succeeded.");
 
 	sent += len;
 
 	/* Send packet */
-	vrr_output(skb, vrr_get_node(), VRR_DATA);
-	goto out;
+	vrr_output(skb, me, VRR_DATA);
 
  out_err:
 	kfree_skb(skb);
  out:
-	return sent ? sent : err;
+	if (iocb)
+		release_sock(sk);
+	return sent ? sent : ret;
 }
 
-static void vrr_sock_destruct(struct sock *sk)
+static int vrr_backlog_rcv(struct sock *sk, struct sk_buff *skb)
 {
-	__skb_queue_purge(&sk->sk_receive_queue);
-	__skb_queue_purge(&sk->sk_error_queue);
+	return 0;
+}
 
-	sk_mem_reclaim(sk);
+static int vrr_release(struct socket *sock)
+{
+	struct sock *sk = sock->sk;
+	struct sk_buff *skb;
+
+	if (sk == NULL)
+		return 0;
+
+	lock_sock(sk);
+
+	while ((skb = __skb_dequeue(&sk->sk_receive_queue)))
+		kfree_skb(skb);
+
+	sock->state = SS_UNCONNECTED;
+	release_sock(sk);
+
+	sock_put(sk);
+	sock->sk = NULL;
+
+	return 0;
 }
 
 struct proto vrr_proto = {
 	.name = "VRR",
 	.owner = THIS_MODULE,
 	.max_header = VRR_MAX_HEADER,
-	.obj_size = sizeof(struct vrr_sock),
+	.obj_size = sizeof(struct sock),
 };
 
 static struct proto_ops vrr_proto_ops = {
@@ -235,36 +240,36 @@ static struct proto_ops vrr_proto_ops = {
 };
 
 static int vrr_create(struct net *net, struct socket *sock,
-		      int protocol, int kern)
+		      int protocol)
 {
 	struct sock *sk;
-	struct vrr_sock *vrr;
-	int err;
 
 	VRR_INFO("Begin vrr_create");
 	VRR_DBG("proto: %u", protocol);
 
-	err = -ENOBUFS;
+	if (unlikely(protocol != 0))
+		return -EPROTONOSUPPORT;
+
+        if (sock->type != SOCK_RAW)
+		return -ESOCKTNOSUPPORT;
+
 	sk = sk_alloc(net, PF_VRR, GFP_KERNEL, &vrr_proto);
-	if (!sk)
-		goto out;
+	if (sk == NULL)
+		return -ENOMEM;
 
-	err = 0;
-	vrr = vrr_sk(sk);
+	sock->ops = &vrr_proto_ops;
+	sock->state = SS_CONNECTING;
 
-	if (sock) {
-		sock->ops = &vrr_proto_ops;
-	}
 	sock_init_data(sock, sk);
 
-	sk->sk_destruct = vrr_sock_destruct;
+	sk->sk_rcvtimeo = msecs_to_jiffies(VRR_FAIL_TIMEOUT * VRR_HPKT_DELAY);
+	sk->sk_backlog_rcv = vrr_backlog_rcv;
 	sk->sk_family = PF_VRR;
 	sk->sk_protocol = protocol;
-	sk->sk_allocation = GFP_KERNEL;
 
 	VRR_INFO("End vrr_create");
- out:
-	return err;
+
+	return 0;
 }
 
 const struct net_proto_family vrr_family_ops = {

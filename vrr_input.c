@@ -400,11 +400,8 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 
         WARN_ATOMIC;
 
-	/* Do stuff! */
 	printk(KERN_ALERT "Received a VRR packet!");
-	/* skb->pkt_type should be ETH_P_VRR */
 
-	/* Debug vrr header */
 	VRR_INFO("vrr_version: %x", vh->vrr_version);
 	VRR_INFO("pkt_type: %x", vh->pkt_type);
 	VRR_INFO("protocol: %x", ntohs(vh->protocol));

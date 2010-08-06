@@ -134,12 +134,6 @@ struct vrr_packet {
      	mac_addr dest_mac;  
 };
 
-struct vrr_sock {
-	struct sock *sk;
-        u_int src_addr;
-	u_int dest_addr;
-};
-
 struct vrr_header {
 	u8 vrr_version;
 	u8 pkt_type;
@@ -147,8 +141,8 @@ struct vrr_header {
 	u16 data_len;
         u8 free;
         u16 h_csum;
-        u_int src_id;
-        u_int dest_id;
+        u32 src_id;
+        u32 dest_id;
         u8 dest_mac[6];
 };
 
