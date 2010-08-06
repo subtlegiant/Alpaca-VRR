@@ -149,6 +149,8 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	struct vrr_packet pkt;
 //	struct vrr_sock *vrr = vrr_sk(sk);
 
+	WARN_ATOMIC;
+
 	if (sk->sk_shutdown & SEND_SHUTDOWN) {
 		return -EPIPE;
 	}
@@ -172,7 +174,7 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 	err = build_header(skb, &pkt);
 	if (err) {
 		VRR_ERR("build_header failed");
-		goto out;
+		goto out_err;
 	}
 	VRR_ERR("build_header succeeded.");
 
@@ -188,12 +190,11 @@ static int vrr_sendmsg(struct kiocb *iocb, struct socket *sock,
 
 	/* Send packet */
 	vrr_output(skb, vrr_get_node(), VRR_DATA);
+	goto out;
 
-	VRR_ERR("vrr_output succeeded?");
-
- out:
-	kfree_skb(skb);
  out_err:
+	kfree_skb(skb);
+ out:
 	return sent ? sent : err;
 }
 
@@ -234,7 +235,7 @@ static struct proto_ops vrr_proto_ops = {
 };
 
 static int vrr_create(struct net *net, struct socket *sock,
-		      int protocol)
+		      int protocol, int kern)
 {
 	struct sock *sk;
 	struct vrr_sock *vrr;

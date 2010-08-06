@@ -427,11 +427,12 @@ int pset_get_mac(u_int node, mac_addr mac)
 
 int pset_inc_fail_count(struct pset_list *node)
 {
+	VRR_DBG("Incrementing fail count for %x", node->node);
 	atomic_inc(&node->fail_count);
 	return atomic_read(&node->fail_count);
 }
 
-int pset_reset_fail_count(u_int node)
+int pset_reset_fail_count(u32 node)
 {
 	pset_list_t *tmp;
 	struct list_head *pos;
@@ -441,6 +442,7 @@ int pset_reset_fail_count(u_int node)
 	list_for_each(pos, &pset.list) {
 		tmp = list_entry(pos, pset_list_t, list);
 		if (tmp->node == node) {
+			VRR_DBG("Resetting fail count for %x", node);
 			atomic_set(&tmp->fail_count, 0);
 			spin_unlock_irqrestore(&vrr_pset_lock, flags);
 			return 0;

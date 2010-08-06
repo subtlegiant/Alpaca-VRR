@@ -145,10 +145,9 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 	VRR_DBG("next_state: %s", pset_states[next_state]);
 
 	if (cur_state == PSET_UNKNOWN)
-		pset_add(ntohl(vh->src_id), src_addr, next_state, active);
+		pset_add(src, src_addr, next_state, active);
 	else
-		pset_update_status(ntohl(vh->src_id), next_state, active);
-        pset_reset_fail_count(ntohl(vh->src_id));
+		pset_update_status(src, next_state, active);
 
         /* Update pset state cache */
         pset_state_update();
@@ -419,6 +418,8 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 		VRR_ERR("Unknown pkt_type: %x", vh->pkt_type);
 		goto drop;
 	}
+
+        pset_reset_fail_count(ntohl(vh->src_id));
 
 	err = (*vrr_rcvfunc[vh->pkt_type])(skb, vh);
 	kfree_skb(skb);

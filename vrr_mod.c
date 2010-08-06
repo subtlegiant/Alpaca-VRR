@@ -209,8 +209,8 @@ static void vrr_timer_tick(unsigned long arg)
 {
 	unsigned long tdelay;
 
-	tdelay = jiffies + (VRR_HPKT_DELAY * HZ / 1000);
 	schedule_work(&vrr_workqueue);
+	tdelay = jiffies + (VRR_HPKT_DELAY * HZ / 1000);
 	mod_timer(&vrr_timer, tdelay);
 }
 
@@ -229,9 +229,6 @@ static int __init vrr_init(void)
 	unsigned long tdelay;
 
 	WARN_ATOMIC;
-
-	//start hello packet timer
-	tdelay = jiffies + VRR_HPKT_DELAY;
 
 	VRR_INFO("Begin init");
 
@@ -266,7 +263,9 @@ static int __init vrr_init(void)
 
 	dev_add_pack(&vrr_packet_type);
 
-		mod_timer(&vrr_timer, tdelay);
+	//start hello packet timer
+	tdelay = jiffies + (VRR_HPKT_DELAY * HZ / 1000);
+	mod_timer(&vrr_timer, tdelay);
 
 	VRR_INFO("End init");
 
