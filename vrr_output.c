@@ -10,52 +10,29 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
                int type)
 {
 	struct net_device *dev;
-	struct ethhdr header;
 	struct vrr_header *vh;
-	int err = 0;
+        struct sk_buff *clone;
 
         WARN_ATOMIC;
-
-        VRR_DBG("Output started");
 
 	vh = (struct vrr_header *)skb->data;
 
 	dev = dev_get_by_name(&init_net, vrr->dev_name);
         if (dev == 0) {
                 VRR_ERR("Device %s does not exist", vrr->dev_name);
-		err = -1;
-		goto out;
+                return -1;
 	}
-	skb->dev = dev;
 
-	if (type == VRR_HELLO)
-                memcpy(&header.h_dest, dev->broadcast, MAC_ADDR_LEN);
-	else
-		memcpy(&header.h_dest, vh->dest_mac, MAC_ADDR_LEN);
-
-	memcpy(&header.h_source, dev->dev_addr, MAC_ADDR_LEN);
-	header.h_proto = htons(ETH_P_VRR);
-
-	memcpy(skb_push(skb, sizeof(header)), &header, sizeof(header));
-
-        /* Check destination for local delivery */
-        if (!memcmp(dev->dev_addr, vh->dest_mac, ETH_ALEN)) {
-                VRR_DBG("Delivering locally");
-		skb_set_mac_header(skb, 0);
-		skb_set_network_header(skb, sizeof(struct ethhdr));
-                vrr_rcv(skb, dev, NULL, NULL);
-                goto out_success;
+        clone = skb_clone(skb, GFP_ATOMIC);
+        if (clone) {
+            skb_reset_network_header(clone);
+            clone->dev = dev;
+            dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac, 
+                            dev->dev_addr, clone->len);
+            dev_queue_xmit(clone);
         }
 
-	dev_queue_xmit(skb);
-
-        VRR_DBG("Output done");
-
-out_success:	
 	return NET_XMIT_SUCCESS;
-
-out: 
-	return err;
 }
 
 /* Call the routing table to find next hop destination */
@@ -81,6 +58,7 @@ int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh)
 
 fail:
 	VRR_DBG("Forward failed");
+        kfree_skb(skb);
         return NET_XMIT_DROP;
        
 }
