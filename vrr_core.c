@@ -40,7 +40,8 @@ int vrr_node_init()
 	INIT_LIST_HEAD(&vrr->dev_list.list);
 	for_each_netdev(net, d) {
 		if (d->name) {
-			if (strcmp(d->name, "eth0") != 0) {
+			if (strcmp(d->name, "eth0") &&
+			    strcmp(d->name, "lo")) {
 				tmp = (struct vrr_interface_list *)
 					kmalloc(sizeof(struct vrr_interface_list), GFP_KERNEL);
 				sscanf(d->name, "%s", tmp->dev_name);
