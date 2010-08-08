@@ -12,25 +12,27 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 	struct net_device *dev;
 	struct vrr_header *vh;
         struct sk_buff *clone;
+	struct list_head *pos;
+	struct vrr_interface_list *tmp;
 
         WARN_ATOMIC;
 
 	vh = (struct vrr_header *)skb->data;
 
-	dev = dev_get_by_name(&init_net, vrr->dev_name);
-        if (dev == 0) {
-                VRR_ERR("Device %s does not exist", vrr->dev_name);
-                return -1;
+	list_for_each(pos, &vrr->dev_list.list) {
+		tmp = list_entry(pos, struct vrr_interface_list, list);
+		dev = dev_get_by_name(&init_net, tmp->dev_name);
+		if (!dev)
+			continue;
+		clone = skb_clone(skb, GFP_ATOMIC);
+		if (clone) {
+			skb_reset_network_header(clone);
+			clone->dev = dev;
+			dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac, 
+					dev->dev_addr, clone->len);
+			dev_queue_xmit(clone);
+		}
 	}
-
-        clone = skb_clone(skb, GFP_ATOMIC);
-        if (clone) {
-            skb_reset_network_header(clone);
-            clone->dev = dev;
-            dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac, 
-                            dev->dev_addr, clone->len);
-            dev_queue_xmit(clone);
-        }
 
 	return NET_XMIT_SUCCESS;
 }

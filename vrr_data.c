@@ -55,6 +55,7 @@ static rt_node_t *rt_find_insert_node(struct rb_root *root, u32 endpoint);
 u_int rt_search(struct rb_root *root, u32 endpoint, int rmv);
 u_int rt_search_exclude(struct rb_root *root, u32 endpoint, u32 src);
 u_int route_list_search(rt_entry* r_list, u32 endpoint);
+u32 route_list_search_rmv(rt_entry *r_list, u32 endpoint, u32 path_id);
 
 int vset_bump(u32 *rem);
 

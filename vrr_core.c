@@ -1,4 +1,4 @@
-//This is the set main core functions that implement the 
+//This is the set main core functions that implement the
 //vrr algorithm
 
 #include <linux/kernel.h>
@@ -26,7 +26,7 @@ int vrr_node_init()
 	    printk(KERN_CRIT "Could not allocate vrr node");
 	    return -1;
 	}
-	 
+
         rand_id = 0;
 
 	vrr = (struct vrr_node *)kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
@@ -43,12 +43,12 @@ int vrr_node_init()
 			if (strcmp(d->name, "eth0") != 0) {
 				tmp = (struct vrr_interface_list *)
 					kmalloc(sizeof(struct vrr_interface_list), GFP_KERNEL);
-				sscanf(d->name, "%s", tmp->dev_name);		
+				sscanf(d->name, "%s", tmp->dev_name);
 				list_add(&(tmp->list), &(vrr->dev_list.list));
                         }
               	}
-	}				
-              
+	}
+
         //generate random id
         get_random_bytes(&vrr->id, VRR_ID_LEN);
 
@@ -80,7 +80,7 @@ void pset_state_update()
         pset_list_t *p;
         struct list_head *pos;
         int i, la_i = 0, lna_i = 0, p_i = 0;
-        
+
 
         list_for_each(pos, pset_head()) {
                 p = list_entry(pos, pset_list_t, list);
@@ -113,7 +113,7 @@ void detect_failures() {
         pset_list_t *tmp;
         struct list_head *pos, *q;
         u_int count, status;
-        
+
         list_for_each_safe(pos, q, pset_head()) {
                 tmp = list_entry(pos, pset_list_t, list);
                 status = tmp->status;
@@ -156,12 +156,12 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
 
   	vset_size = vset_get_all(&vset);
         data_size = sizeof(u_int) * (vset_size + 2);
- 
+
 	setup_req_data = kmalloc(data_size, GFP_ATOMIC);
-        
+
         /* VRR_DBG("setup request src id: %x", src); */
         /* setup_req_data[p++] = htonl(src); */
-        
+
         /* VRR_DBG("setup request dst id: %x", dest); */
         /* setup_req_data[p++] = htonl(dest); */
 
@@ -175,7 +175,7 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
                 VRR_DBG("vset[%x]: %x", i, vset[i]);
 		setup_req_data[p++] = htonl(vset[i]);
      	}
-        
+
 	skb = vrr_skb_alloc(data_size, GFP_ATOMIC);
 	if (skb) {
                 memcpy(skb_put(skb, data_size), setup_req_data, data_size);
@@ -201,7 +201,7 @@ fail:
 	VRR_ERR("skb allocation failed");
         kfree(setup_req_data);
         return -1;
-        	
+
 }
 
 
@@ -210,23 +210,17 @@ int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
                u32 *vset, u32 to)
 {
         struct sk_buff *skb;
-	struct net_device *dev;
-        struct vrr_node *me = vrr_get_node();
         struct vrr_packet setup_pkt;
         int data_size = sizeof(u32) * (vset_size + 3);
         u32 setup_data[data_size];
         int i, p = 0;
         unsigned char dest_mac[ETH_ALEN];
 
-        if (to == me->id) {
-		/* TODO: change me to use local_rcv_setup */
-                dev = dev_get_by_name(&init_net, me->dev_name);
-                memcpy(dest_mac, dev->dev_addr, ETH_ALEN);
-        } else if (!pset_get_mac(to, dest_mac)) {
+        if (!pset_get_mac(to, dest_mac)) {
                 VRR_ERR("Sending setup msg to unconnected node: %x", to);
                 return -1;
         }
-        
+
         VRR_DBG("path_id: %x", path_id);
         setup_data[p++] = htonl(path_id);
 
@@ -237,7 +231,7 @@ int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
         setup_data[p++] = htonl(vset_size);
 
         for (i = 0; i < vset_size; i++) {
-                VRR_DBG("vset[%x]: %x", i, vset[i]); 
+                VRR_DBG("vset[%x]: %x", i, vset[i]);
 		setup_data[p++] = htonl(vset[i]);
      	}
 
@@ -254,7 +248,7 @@ int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
         setup_pkt.data_len = data_size;
         setup_pkt.pkt_type = VRR_SETUP;
         memcpy(setup_pkt.dest_mac, dest_mac, ETH_ALEN);
-        
+
         build_header(skb, &setup_pkt);
         vrr_output(skb, vrr_get_node(), VRR_SETUP);
 
@@ -266,21 +260,16 @@ int send_setup_fail(u32 src, u32 dst, u32 proxy, u32 vset_size,
 {
 	struct sk_buff *skb;
         struct vrr_packet setup_fail_pkt;
-	struct net_device *dev;
-        struct vrr_node *me = vrr_get_node();
         int data_size = sizeof(u32) * (vset_size + 2);
         u32 setup_fail_data[data_size];
         int i, p = 0;
         unsigned char dest_mac[ETH_ALEN];
 
-        if (to == me->id) {
-                dev = dev_get_by_name(&init_net, me->dev_name);
-                memcpy(dest_mac, dev->dev_addr, ETH_ALEN);
-        } else if (!pset_get_mac(to, dest_mac)) {
-                VRR_ERR("Sending setup msg to unconnected node: %x", to);
+        if (!pset_get_mac(to, dest_mac)) {
+                VRR_ERR("Sending setup_fail to unconnected node: %x", to);
                 return -1;
         }
-        
+
         VRR_DBG("proxy: %x", proxy);
         setup_fail_data[p++] = htonl(proxy);
 
@@ -288,7 +277,7 @@ int send_setup_fail(u32 src, u32 dst, u32 proxy, u32 vset_size,
         setup_fail_data[p++] = htonl(vset_size);
 
         for (i = 0; i < vset_size; i++) {
-                VRR_DBG("vset[%x]: %x", i, vset[i]); 
+                VRR_DBG("vset[%x]: %x", i, vset[i]);
 		setup_fail_data[p++] = htonl(vset[i]);
      	}
 
@@ -305,13 +294,13 @@ int send_setup_fail(u32 src, u32 dst, u32 proxy, u32 vset_size,
         setup_fail_pkt.data_len = data_size;
         setup_fail_pkt.pkt_type = VRR_SETUP_FAIL;
         memcpy(setup_fail_pkt.dest_mac, dest_mac, ETH_ALEN);
-        
+
         build_header(skb, &setup_fail_pkt);
         vrr_output(skb, vrr_get_node(), VRR_SETUP_FAIL);
 
 	return 0;
 }
-        
+
 /* take a packet node and build header. Add header to sk_buff for
  * transport to layer two.
  * the header consists of:
@@ -352,7 +341,7 @@ int build_header(struct sk_buff *skb, struct vrr_packet *vpkt)
                 memset(header.dest_mac, -1, ETH_ALEN);
         else
 		memcpy(header.dest_mac, vpkt->dest_mac, ETH_ALEN);
-     	
+
 	//add header
 	memcpy(skb_push(skb, sizeof(struct vrr_header)), &header,
 	       sizeof(struct vrr_header));
@@ -383,7 +372,7 @@ int rmv_vrr_header(struct sk_buff *skb)
 /* 	 *\/ */
 
 /* 	u8 pkt_type; */
-	
+
 
 /* 	return pkt_type; */
 /* } */
@@ -411,8 +400,8 @@ int send_hpkt()
 
         VRR_DBG("My ID: %x", vrr->id);
 
-        data_size = sizeof(u32) * (pstate->la_size + 
-                                     pstate->lna_size + 
+        data_size = sizeof(u32) * (pstate->la_size +
+                                     pstate->lna_size +
                                      pstate->p_size + 4);
 
         hpkt_data = (u32 *) kmalloc(data_size, GFP_KERNEL);
@@ -456,7 +445,7 @@ int send_hpkt()
 	hpkt.pkt_type = VRR_HELLO;
 	build_header(skb, &hpkt);
 	vrr_output(skb, vrr_get_node(), VRR_HELLO);
-                   
+
         kfree(hpkt_data);
 	return 0;
  fail:
@@ -514,7 +503,7 @@ u32 *get_pset_pending()
 
 int get_pset_active_size()
 {
-	return pstate->la_size * sizeof(u32); 
+	return pstate->la_size * sizeof(u32);
 }
 
 int get_pset_not_active_size()
@@ -567,7 +556,7 @@ int vrr_add(u32 src, u32 vset_size, u32 *vset)
 {
 	u32 i, proxy, rem = 0, ret;
         u32 me = get_vrr_id();
-	
+
 	for (i = 0; i < vset_size; i++)
 		if (vset_should_add(vset[i])) {
 			ret = pset_get_proxy(&proxy);
