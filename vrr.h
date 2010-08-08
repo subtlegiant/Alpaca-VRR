@@ -109,12 +109,17 @@ struct pset_state {
 #define svrr_zero	__pad
 struct sockaddr_vrr {
 	sa_family_t	svrr_family; /* AF_VRR */
-	u32		svrr_addr;   /* VRR identifier */
+	unsigned long	svrr_addr;   /* VRR identifier */
         
         /* Pad to sizeof(struct sockaddr). */
         unsigned char	__pad[__SOCK_SIZE__ - 
                               sizeof(sa_family_t) -
                               sizeof(unsigned long)];
+};
+
+struct vrr_interface_list {
+	char *dev_name;
+        struct list_head list;
 };
 
 struct vrr_node {
@@ -125,13 +130,10 @@ struct vrr_node {
 	int active;
         int timeout;
 
-	vrr_interface_list dev_list;
+	struct vrr_interface_list dev_list;
 };
 
-struct vrr_interface_list {
-	char *dev_name;
-        struct list_head list;
-};
+
 
 struct vrr_packet {
 	u_int src; //the current node id
@@ -141,6 +143,12 @@ struct vrr_packet {
      	mac_addr dest_mac;  
 };
 
+struct vrr_sock {
+	struct sock *sk;
+        u_int src_addr;
+	u_int dest_addr;
+};
+
 struct vrr_header {
 	u8 vrr_version;
 	u8 pkt_type;
@@ -148,8 +156,8 @@ struct vrr_header {
 	u16 data_len;
         u8 free;
         u16 h_csum;
-        u32 src_id;
-        u32 dest_id;
+        u_int src_id;
+        u_int dest_id;
         u8 dest_mac[6];
 };
 
@@ -158,6 +166,11 @@ static inline struct vrr_header *vrr_hdr(const struct sk_buff *skb)
         /* skb_network_header returns skb->head + skb->network_header */
         return (struct vrr_header *)skb_network_header(skb);
 }
+
+static inline struct vrr_sock *vrr_sk(const struct sock *sk)
+{
+        return (struct vrr_sock *)sk;
+};
 
 static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 {
@@ -168,8 +181,6 @@ static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 	}
 	return skb;
 }
-
-struct sock *vrr_find_sock(u32 addr);
 
 /*
  * Functions provided by vrr_input.c

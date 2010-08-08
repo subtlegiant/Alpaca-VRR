@@ -6,7 +6,6 @@
 #include <linux/skbuff.h>
 #include <linux/errno.h>
 #include <linux/mm.h>
-#include <linux/>netdevice.h
 #include "vrr.h"
 #include "vrr_data.h"
 
@@ -20,9 +19,7 @@ int vrr_node_init()
 	 */
 	int rand_id;
         struct net_device *d;
-	char *dev_name;
-        vrr_interface_list *tmp;
-        vrr_interface_list *ilist;
+        struct vrr_interface_list *tmp;
 
 	vrr = kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
   	if(!vrr){
@@ -45,7 +42,7 @@ int vrr_node_init()
 		if (d->name) {
 			if (strcmp(d->name, "eth0") != 0) {
 				tmp = (struct vrr_interface_list *)
-					kmalloc(sizeof(struct vrr_interface_list));
+					kmalloc(sizeof(struct vrr_interface_list), GFP_KERNEL);
 				sscanf(d->name, "%s", tmp->dev_name);		
 				list_add(&(tmp->list), &(vrr->dev_list.list));
                         }
@@ -79,7 +76,7 @@ int pset_state_init()
 }
 
 void pset_state_update()
-{kobject
+{
         pset_list_t *p;
         struct list_head *pos;
         int i, la_i = 0, lna_i = 0, p_i = 0;
@@ -461,7 +458,6 @@ int send_hpkt()
 	vrr_output(skb, vrr_get_node(), VRR_HELLO);
                    
         kfree(hpkt_data);
-	kfree_skb(skb);
 	return 0;
  fail:
 	VRR_ERR("hello skb buff failed");
