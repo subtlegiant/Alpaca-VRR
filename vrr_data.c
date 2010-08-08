@@ -52,7 +52,7 @@ static vset_list_t vset;
 u_int get_diff(u_int x, u_int y);
 void insert_vset_node(u_int node);
 static rt_node_t *rt_find_insert_node(struct rb_root *root, u32 endpoint);
-u_int rt_search(struct rb_root *root, u32 endpoint);
+u_int rt_search(struct rb_root *root, u32 endpoint, int rmv);
 u_int rt_search_exclude(struct rb_root *root, u32 endpoint, u32 src);
 u_int route_list_search(rt_entry* r_list, u32 endpoint);
 
@@ -77,7 +77,7 @@ u_int rt_get_next(u32 dest)
 	u32 next;
 	unsigned long flags;
 	spin_lock_irqsave(&vrr_rt_lock, flags);
-	next = rt_search(&rt_root, dest);
+	next = rt_search(&rt_root, dest, 0);
 	spin_unlock_irqrestore(&vrr_rt_lock, flags);
 
 	return next;
@@ -86,7 +86,7 @@ u_int rt_get_next(u32 dest)
 /*
  * Helper function to search the Red-Black Tree routing table
  */
-u32 rt_search(struct rb_root *root, u32 endpoint)
+u32 rt_search(struct rb_root *root, u32 endpoint, int rmv)
 {
 	struct rb_node *node = root->rb_node;	// top of the tree
 
@@ -100,7 +100,11 @@ u32 rt_search(struct rb_root *root, u32 endpoint)
 		else {
 			if (this->endpoint == ME)
 				return 0;
-			return route_list_search(&this->routes, endpoint);
+
+ 			if (rmv == 0) 
+				return route_list_search(&this->routes, endpoint);
+			else 
+				return route_list_search_rmv(&this->routes, endpoint, rmv);
 		}
 	}
 	return 0;
@@ -187,6 +191,22 @@ u_int route_list_search(rt_entry *r_list, u32 endpoint)
 	return 0;
 }
 
+u32 route_list_search_rmv(rt_entry *r_list, u32 endpoint, u32 path_id)
+{
+	rt_entry *tmp = NULL;
+	rt_entry *max_entry = NULL;
+	struct list_head *pos;
+
+	list_for_each(pos, &r_list->list){
+		tmp = list_entry(pos, rt_entry, list);
+		if (tmp->path_id == path_id) {
+			list_del(struct list_head * tmp);
+			return 0;
+		}
+	}
+	
+	return -1;
+}
 
 /**
  * Adds a route to the rb tree.  Might add two different entries if there
@@ -290,7 +310,14 @@ int rt_remove_nexts(u_int route_hop_to_remove)  //TODO: code this
 	return 0;
 }
 
-
+int rt_remove_route(u32 ea, u32 eb, u32 na, u32 nb, u32 path_id)
+{
+	if (rt_search(&rt_root, ea, path_id))
+		return 0;
+	
+	return -1;
+} 
+	
 /*
  * Physical set functions
  */
@@ -427,12 +454,11 @@ int pset_get_mac(u_int node, mac_addr mac)
 
 int pset_inc_fail_count(struct pset_list *node)
 {
-	VRR_DBG("Incrementing fail count for %x", node->node);
 	atomic_inc(&node->fail_count);
 	return atomic_read(&node->fail_count);
 }
 
-int pset_reset_fail_count(u32 node)
+int pset_reset_fail_count(u_int node)
 {
 	pset_list_t *tmp;
 	struct list_head *pos;
@@ -442,7 +468,6 @@ int pset_reset_fail_count(u32 node)
 	list_for_each(pos, &pset.list) {
 		tmp = list_entry(pos, pset_list_t, list);
 		if (tmp->node == node) {
-			VRR_DBG("Resetting fail count for %x", node);
 			atomic_set(&tmp->fail_count, 0);
 			spin_unlock_irqrestore(&vrr_pset_lock, flags);
 			return 0;
