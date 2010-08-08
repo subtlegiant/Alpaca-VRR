@@ -38,7 +38,7 @@ int vrr_node_init()
 
 	// initialize the interface list
 	INIT_LIST_HEAD(&vrr->dev_list.list);
-	for_each_netdev(net, d) {
+	for_each_netdev(&init_net, d) {
 		if (d->name) {
 			if (strcmp(d->name, "eth0") &&
 			    strcmp(d->name, "lo")) {

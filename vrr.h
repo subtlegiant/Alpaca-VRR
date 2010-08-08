@@ -63,7 +63,6 @@
 //Mac address
 #define MAC_ADDR_LEN 6
 typedef unsigned char mac_addr[MAC_ADDR_LEN];
-extern struct net *net;
 
 struct eth_header {
     mac_addr dest;
@@ -118,7 +117,7 @@ struct sockaddr_vrr {
 };
 
 struct vrr_interface_list {
-	char *dev_name;
+	char dev_name[IFNAMSIZ];
         struct list_head list;
 };
 
