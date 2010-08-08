@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./rcv `cat /sys/kernel/vrr/vset`
