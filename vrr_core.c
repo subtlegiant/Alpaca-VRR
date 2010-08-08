@@ -6,6 +6,7 @@
 #include <linux/skbuff.h>
 #include <linux/errno.h>
 #include <linux/mm.h>
+#include <linux/>netdevice.h
 #include "vrr.h"
 #include "vrr_data.h"
 
@@ -18,6 +19,10 @@ int vrr_node_init()
 	 * members.
 	 */
 	int rand_id;
+        struct net_device *d;
+	char *dev_name;
+        vrr_interface_list *tmp;
+        vrr_interface_list *ilist;
 
 	vrr = kmalloc(sizeof(struct vrr_node), GFP_KERNEL);
   	if(!vrr){
@@ -31,10 +36,22 @@ int vrr_node_init()
         vrr->vset_size = 4;
         vrr->rtable_value = 0;
         vrr->version = 0x1;
-        vrr->dev_name = "eth1"; //hard coded for now
 	vrr->active = 0;
         vrr->timeout = 0;
-             
+
+	// initialize the interface list
+	INIT_LIST_HEAD(&vrr->dev_list.list);
+	for_each_netdev(net, d) {
+		if (d->name) {
+			if (strcmp(d->name, "eth0") != 0) {
+				tmp = (struct vrr_interface_list *)
+					kmalloc(sizeof(struct vrr_interface_list));
+				sscanf(d->name, "%s", tmp->dev_name);		
+				list_add(&(tmp->list), &(vrr->dev_list.list));
+                        }
+              	}
+	}				
+              
         //generate random id
         get_random_bytes(&vrr->id, VRR_ID_LEN);
 
@@ -62,7 +79,7 @@ int pset_state_init()
 }
 
 void pset_state_update()
-{
+{kobject
         pset_list_t *p;
         struct list_head *pos;
         int i, la_i = 0, lna_i = 0, p_i = 0;

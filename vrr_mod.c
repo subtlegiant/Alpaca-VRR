@@ -164,9 +164,17 @@ static ssize_t vset_show (struct kobject *kobj,
 
 	return line_len * vset_size + 1;
 }
+
+static ssize_t interface_list_store(struct kobject *kobj,
+				struct kobj_attribute *attr,
+				const char *buf, 
+				size_t count)
+{
+	char *interface;
+	sscanf(buf, "%s", interface);
+	return count;
+}
                                
-
-
 static struct kobj_attribute id_attr =
 	 __ATTR(id, 0666, id_show, NULL);
 static struct kobj_attribute pset_active_attr = 
@@ -177,6 +185,8 @@ static struct kobj_attribute pset_pending_attr =
 	__ATTR(pset_pending, 0666, pset_pending_show, NULL);
 static struct kobj_attribute vset_attr = 
 	__ATTR(vset, 0666, vset_show, NULL);
+static struct kobj_attribute interface_list_attr =
+	__ATTR(interface_list, 0666, NULL, interface_list_store);
 
 
 static struct attribute *attrs[] = {
@@ -185,6 +195,7 @@ static struct attribute *attrs[] = {
 	&pset_not_active_attr.attr,
 	&pset_pending_attr.attr,
 	&vset_attr.attr,
+	&interface_list.attr,
 	NULL,
 };
 

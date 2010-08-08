@@ -63,7 +63,7 @@
 //Mac address
 #define MAC_ADDR_LEN 6
 typedef unsigned char mac_addr[MAC_ADDR_LEN];
-extern struct net init_net;
+extern struct net *net;
 
 struct eth_header {
     mac_addr dest;
@@ -93,6 +93,7 @@ struct pset_state {
 	int la_size;
         int lna_size;
         int p_size;
+       
 
         // size of mac address arrays
         // used mostly for debug, should 
@@ -121,9 +122,15 @@ struct vrr_node {
 	int vset_size; 
 	int rtable_value; //the size of the virtual neighborhood
 	u8 version;
-        char *dev_name;
 	int active;
         int timeout;
+
+	vrr_interface_list dev_list;
+};
+
+struct vrr_interface_list {
+	char *dev_name;
+        struct list_head list;
 };
 
 struct vrr_packet {
