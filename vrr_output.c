@@ -15,18 +15,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 
         WARN_ATOMIC;
 
-        VRR_DBG("Output started");
-
 	vh = (struct vrr_header *)skb->data;
-
-	VRR_INFO("vrr_version: %x", vh->vrr_version);
-	VRR_INFO("pkt_type: %x", vh->pkt_type);
-	VRR_INFO("protocol: %x", ntohs(vh->protocol));
-	VRR_INFO("data_len: %x", ntohs(vh->data_len));
-	VRR_INFO("free: %x", vh->free);
-	VRR_INFO("h_csum: %x", vh->h_csum);
-	VRR_INFO("src_id: %x", ntohl(vh->src_id));
-	VRR_INFO("dest_id: %x", ntohl(vh->dest_id));
 
 	dev = dev_get_by_name(&init_net, vrr->dev_name);
         if (dev == 0) {
@@ -69,6 +58,7 @@ int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh)
 
 fail:
 	VRR_DBG("Forward failed");
+        kfree_skb(skb);
         return NET_XMIT_DROP;
        
 }

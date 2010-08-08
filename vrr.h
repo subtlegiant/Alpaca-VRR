@@ -108,7 +108,7 @@ struct pset_state {
 #define svrr_zero	__pad
 struct sockaddr_vrr {
 	sa_family_t	svrr_family; /* AF_VRR */
-	unsigned long	svrr_addr;   /* VRR identifier */
+	u32		svrr_addr;   /* VRR identifier */
         
         /* Pad to sizeof(struct sockaddr). */
         unsigned char	__pad[__SOCK_SIZE__ - 
@@ -152,11 +152,6 @@ static inline struct vrr_header *vrr_hdr(const struct sk_buff *skb)
         return (struct vrr_header *)skb_network_header(skb);
 }
 
-static inline struct vrr_sock *vrr_sk(const struct sock *sk)
-{
-        return (struct vrr_sock *)sk;
-};
-
 static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 {
 	struct sk_buff *skb = NULL;
@@ -166,6 +161,8 @@ static inline struct sk_buff *vrr_skb_alloc(unsigned int len, gfp_t how)
 	}
 	return skb;
 }
+
+struct sock *vrr_find_sock(u32 addr);
 
 /*
  * Functions provided by vrr_input.c

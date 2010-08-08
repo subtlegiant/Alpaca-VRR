@@ -444,6 +444,7 @@ int send_hpkt()
 	vrr_output(skb, vrr_get_node(), VRR_HELLO);
                    
         kfree(hpkt_data);
+	kfree_skb(skb);
 	return 0;
  fail:
 	VRR_ERR("hello skb buff failed");

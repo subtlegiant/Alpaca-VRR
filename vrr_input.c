@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/skbuff.h>
 #include <linux/netdevice.h>
+#include <net/sock.h>
 #include "vrr.h"
 #include "vrr_data.h"
 
@@ -30,21 +31,25 @@ static int vrr_local_rcv_setup_fail(u32 dst, u32 proxy,
 
 static int vrr_rcv_data(struct sk_buff *skb, const struct vrr_header *vh)
 {
-	/* u_int nh = NextHop(rt, dst)          //find next hop */
-	/* if nh == 0 */
-	/* send to application layer */
-	/* else */
-	/* send packet back out to nh */
-
-        if (vh->dest_id == get_vrr_id()) {
-        	/* send to application layer */
-        }
-
-	else 
-		vrr_forward(skb, vh);
-
+	u32 src = ntohl(vh->src_id);
+	u32 dst = ntohl(vh->dest_id);
+	u32 me = get_vrr_id();
+        int ret = 0;
 
 	VRR_DBG("Packet type: VRR_DATA");
+
+        if (dst == me) {
+		struct sock *sk = vrr_find_sock(src);
+		
+		if (sk) {
+			ret = sk_receive_skb(sk, skb, 0);
+                        sock_put(sk);
+                        return ret;
+                }
+		VRR_DBG("No input socket found!");
+                return -1;
+        } else 
+		vrr_forward(skb, vh);
 
 	return 0;
 }
@@ -402,14 +407,14 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 
 	printk(KERN_ALERT "Received a VRR packet!");
 
-	VRR_INFO("vrr_version: %x", vh->vrr_version);
-	VRR_INFO("pkt_type: %x", vh->pkt_type);
-	VRR_INFO("protocol: %x", ntohs(vh->protocol));
-	VRR_INFO("data_len: %x", ntohs(vh->data_len));
-	VRR_INFO("free: %x", vh->free);
-	VRR_INFO("h_csum: %x", vh->h_csum);
-	VRR_INFO("src_id: %x", ntohl(vh->src_id));
-	VRR_INFO("dest_id: %x", ntohl(vh->dest_id));
+	/* VRR_INFO("vrr_version: %x", vh->vrr_version); */
+	/* VRR_INFO("pkt_type: %x", vh->pkt_type); */
+	/* VRR_INFO("protocol: %x", ntohs(vh->protocol)); */
+	/* VRR_INFO("data_len: %x", ntohs(vh->data_len)); */
+	/* VRR_INFO("free: %x", vh->free); */
+	/* VRR_INFO("h_csum: %x", vh->h_csum); */
+	/* VRR_INFO("src_id: %x", ntohl(vh->src_id)); */
+	/* VRR_INFO("dest_id: %x", ntohl(vh->dest_id)); */
 
 	if (vh->pkt_type < 0 || vh->pkt_type >= VRR_NPTYPES) {
 		VRR_ERR("Unknown pkt_type: %x", vh->pkt_type);
@@ -419,7 +424,6 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
         pset_reset_fail_count(ntohl(vh->src_id));
 
 	err = (*vrr_rcvfunc[vh->pkt_type])(skb, vh);
-	kfree_skb(skb);
 
 	if (err) {
 		VRR_ERR("Error in rcv func.");
@@ -428,6 +432,7 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 
 	return NET_RX_SUCCESS;
 drop:
+        kfree_skb(skb);
 	return NET_RX_DROP;
 }
 
