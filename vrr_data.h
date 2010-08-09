@@ -46,7 +46,7 @@ u_int rt_get_next(u_int dest);
 u_int rt_get_next_exclude(u_int dest, u_int src);
 int rt_add_route(u32 ea, u32 eb, u32 na, u32 nb, u32 path_id);
 int rt_remove_nexts(u_int route_hop_to_remove);
-int rt_remove_route(u32 ea, u32 eb, u32 na, u32 nb, u32 path_id);
+rt_entry* rt_remove_route(u32 ea, u32 path_id);
 
 /* Functions for physical set of nodes, and also their current state (linked, active or pending)
  * pset_add : Add a node to the physical set.  Returns 1 on success,
@@ -69,6 +69,7 @@ int pset_inc_fail_count(struct pset_list *node);
 int pset_reset_fail_count(u_int node);
 struct list_head *pset_head(void);
 int pset_get_proxy(u32 *proxy);
+int pset_contains(u32 id);
 
 /* Functions for virtual set of nodes
  * vset_add : Adds a node to the virtual set.  Returns 0 on failure

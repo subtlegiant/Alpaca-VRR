@@ -52,9 +52,11 @@ static vset_list_t vset;
 u_int get_diff(u_int x, u_int y);
 void insert_vset_node(u_int node);
 static rt_node_t *rt_find_insert_node(struct rb_root *root, u32 endpoint);
-u_int rt_search(struct rb_root *root, u32 endpoint, int rmv);
+u_int rt_search(struct rb_root *root, u32 endpoint);
+rt_entry *rt_search_rmv(struct rb_root *root, u32 endpoint, u32 path_id);
 u_int rt_search_exclude(struct rb_root *root, u32 endpoint, u32 src);
 u_int route_list_search(rt_entry* r_list, u32 endpoint);
+rt_entry *route_list_search_rmv(rt_entry *r_list, u32 endpoint, u32 path_id);
 
 int vset_bump(u32 *rem);
 
@@ -86,7 +88,7 @@ u_int rt_get_next(u32 dest)
 /*
  * Helper function to search the Red-Black Tree routing table
  */
-u32 rt_search(struct rb_root *root, u32 endpoint, int rmv)
+u32 rt_search(struct rb_root *root, u32 endpoint)
 {
 	struct rb_node *node = root->rb_node;	// top of the tree
 
@@ -101,13 +103,28 @@ u32 rt_search(struct rb_root *root, u32 endpoint, int rmv)
 			if (this->endpoint == ME)
 				return 0;
 
- 			if (rmv == 0) 
-				return route_list_search(&this->routes, endpoint);
-			else 
-				return route_list_search_rmv(&this->routes, endpoint, rmv);
+			return route_list_search(&this->routes, endpoint);
 		}
 	}
 	return 0;
+}
+
+rt_entry* rt_search_rmv(struct rb_root *root, u32 endpoint, path_id)
+{
+	struct rb_node *node = root->rb_node;	// top of the tree
+
+	while (node) {
+		rt_node_t *this = rb_entry(node, rt_node_t, node);
+
+		if (endpoint < this->endpoint)
+			node = node->rb_left;
+		else if (endpoint > this->endpoint)
+			node = node->rb_right;
+		else 
+			return route_list_search_rmv(&this->routes, endpoint, path_id);
+		
+	}
+	return NULL;
 }
 
 /*
@@ -191,7 +208,7 @@ u_int route_list_search(rt_entry *r_list, u32 endpoint)
 	return 0;
 }
 
-u32 route_list_search_rmv(rt_entry *r_list, u32 endpoint, u32 path_id)
+rt_entry* route_list_search_rmv(rt_entry *r_list, u32 endpoint, u32 path_id)
 {
 	rt_entry *tmp = NULL;
 	rt_entry *max_entry = NULL;
@@ -200,12 +217,12 @@ u32 route_list_search_rmv(rt_entry *r_list, u32 endpoint, u32 path_id)
 	list_for_each(pos, &r_list->list){
 		tmp = list_entry(pos, rt_entry, list);
 		if (tmp->path_id == path_id) {
-			list_del(struct list_head * tmp);
-			return 0;
+			list_del(tmp->list);
+			return tmp;
 		}
 	}
 	
-	return -1;
+	return NULL;
 }
 
 /**
@@ -286,7 +303,8 @@ static rt_node_t *rt_find_insert_node(struct rb_root *root, u32 endpoint)
 			new = &((*new)->rb_left);
 		else if (cmp > 0)
 			new = &((*new)->rb_right);
-		else {
+		
+else {
 			return this;
 		}
 	}
@@ -310,12 +328,9 @@ int rt_remove_nexts(u_int route_hop_to_remove)  //TODO: code this
 	return 0;
 }
 
-int rt_remove_route(u32 ea, u32 eb, u32 na, u32 nb, u32 path_id)
+rt_entry* rt_remove_route(u32 ea, u32 path_id)
 {
-	if (rt_search(&rt_root, ea, path_id))
-		return 0;
-	
-	return -1;
+	return(rt_search_rmv(&rt_root, ea, path_id));
 } 
 	
 /*
@@ -505,6 +520,24 @@ int pset_get_proxy(u32 *proxy) {
 	r = r % i;
 	*proxy = active[r];
 	return 1;
+}
+
+int pset_contains(u32 id)
+{
+	pset_list_t *tmp;
+	unsigned long flags;
+	struct list_head *pos;
+
+	spin_lock_irqsave(&vr_pset_lock, flags);
+	list_for_each(pos, &pset.list) {
+		tmp = list_entry(pos, pset_list_t, list);
+		if (tmp->node == id) 
+			return 1;
+	}
+
+	spin_unlock_irqstore(&vrr_pset_lock, flags);
+
+	return 0;
 }
 
 /*

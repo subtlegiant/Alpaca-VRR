@@ -311,6 +311,86 @@ int send_setup_fail(u32 src, u32 dst, u32 proxy, u32 vset_size,
 
 	return 0;
 }
+
+int send_teardown(u32 path_id, u32 endpoint, u32 *vset, 
+			u32 vset_size, u32 to) 
+{
+	
+	struct sk_buff *skb;
+	struct vrr_packet teardown_pkt;
+	struct net_device *dev;
+	int data_size = sizeof(u32) * (vset + 1);
+	u32 teardown_data[data_size];
+ 	unsigned char dest_mac[ETH_ALEN];
+	int i, p = 0;
+
+	if(!pset_get_mac(to, dest_mac)) 
+		return -1;
+
+	VRR_DBG("vset_size: %x",  vset_size);
+	teardown_pkt[p++] = htonl(vest_size);
+
+	for (i = 0; i < vset_size; i++) {
+		VRR_DBG("vset[%x]: %x", i, vset[i]);
+		teardown_data[p++] = htonl(vset[i]);
+	}
+
+	skb = vrr_skb_alloc(data_size, GFP_ATOMIC);
+        if (skb) {
+                memcpy(skb_put(skb, data_size), teardown_data, data_size);
+        } else {
+                VRR_ERR("Failed to alloc skb.");
+                return -1;
+        }
+
+        teardown_pkt.src = src;
+        teardown_pkt.dst = dst;
+        teardown_pkt.data_len = data_size;
+        teardown_pkt.pkt_type = VRR_TEARDOWN;
+        memcpy(l_pkt.dest_mac, dest_mac, ETH_ALEN);
+        
+        build_header(skb, &teardown_pkt);
+        vrr_output(skb, vrr_get_node(), VRR_TEARDOWN);
+
+	return 0;
+}
+	
+int tear_down_path(u32 path_id, u32 endpoint, u32 sender)
+{
+	rt_entry *route;
+	u32 *vset, vset_size;
+ 
+	
+	route = rt_remove_route(endpoint, path_id);
+
+	if (route) {
+		vset = NULL;
+		if (route->na != NULL && pset_contains(route->na)) {
+			if (sender != NULL)
+				vset_size = vset_get_all(&vset);
+			send_teardown(path_id, endpoint, vset, vset_size, route->na);	
+		}
+	        vset = NULL;	
+		if (route->nb != NULL && pset_contains(route->nb)) {
+			if (sender != NULL)
+				vset_size = vset_get_all(&vset);
+			send_teardown(path_id, endpoint, vset, vset_size, route->nb);
+		}
+		vset = NULL;
+		if (sender != NULL && pset_contains(sender)) {
+			vset_size = vset_get_all(&vset);
+			send_teardown(path_id, endpoint, vset, sender);
+		}
+	}
+
+	else 
+		return -1;
+
+	return 0;
+}
+
+	
+	
         
 /* take a packet node and build header. Add header to sk_buff for
  * transport to layer two.
