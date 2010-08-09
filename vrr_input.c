@@ -420,18 +420,17 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
 
 static int vrr_rcv_teardown(struct sk_buff *skb, const struct vrr_header *vh) 
 {
-	VRR_DBG("Packet type: VRR_RCV_TEARDOWN");
-
-	u32 nh, src, dst, ea, endpt, pid, next, proxy;
+	u32 src, dst, ea, endpt, pid, next, proxy;
         u32 *vset, vset_size;
         size_t offset = sizeof(struct vrr_header);
         size_t step = sizeof(u32);
-        int in_pset, i;
-        unsigned char src_addr[ETH_ALEN];
+        int i;
         rt_entry *route;
 
-	src = ntohl(vh->src);
-	dst = ntohl(vh->dst);
+	VRR_DBG("Packet type: VRR_RCV_TEARDOWN");
+
+	src = ntohl(vh->src_id);
+	dst = ntohl(vh->dest_id);
 
         skb_copy_bits(skb, offset, &ea, step);
         ea = ntohl(ea);
@@ -477,10 +476,10 @@ static int vrr_rcv_teardown(struct sk_buff *skb, const struct vrr_header *vh)
 	else {
 		// Remove(vset, e)
 		if (vset)
-			vrr_add(NULL, vset_size, vset);
+			vrr_add(0, vset_size, vset);
 		else {
 			if(pset_get_proxy(&proxy)) 
-				send_setup_rquest(get_vrr_id(), endpt, proxy);
+				send_setup_req(get_vrr_id(), endpt, proxy);
 		}
 	}
 	return 0;

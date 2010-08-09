@@ -364,21 +364,24 @@ int tear_down_path(u32 path_id, u32 endpoint, u32 sender)
 	route = rt_remove_route(endpoint, path_id);
 
 	if (route) {
-		if (route->na != NULL && pset_contains(route->na)) {
-			if (sender != NULL)
+		if (route->na && pset_contains(route->na)) {
+			if (sender)
 				vset_size = vset_get_all(&vset);
-			send_teardown(path_id, endpoint, vset, vset_size, route->na);	
+			send_teardown(path_id, endpoint, vset, vset_size, 
+                                      route->na);	
 		}
 	        vset = 0;	
-		if (route->nb != NULL && pset_contains(route->nb)) {
-			if (sender != NULL)
+		if (route->nb && pset_contains(route->nb)) {
+			if (sender)
 				vset_size = vset_get_all(&vset);
-			send_teardown(path_id, endpoint, vset, vset_size, route->nb);
+			send_teardown(path_id, endpoint, vset, vset_size, 
+                                      route->nb);
 		}
 		vset = 0;
-		if (sender != NULL && pset_contains(sender)) {
+		if (sender && pset_contains(sender)) {
 			vset_size = vset_get_all(&vset);
-			send_teardown(path_id, endpoint, vset, vset_size, sender);
+			send_teardown(path_id, endpoint, vset, vset_size, 
+                                      sender);
 		}
 	}
 
