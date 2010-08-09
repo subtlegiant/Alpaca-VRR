@@ -126,6 +126,14 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 
         eth_header_parse(skb, src_addr);
 
+        VRR_DBG("src_addr: %x:%x:%x:%x:%x:%x",
+                src_addr[0], 
+                src_addr[1],
+                src_addr[2], 
+                src_addr[3], 
+                src_addr[4], 
+                src_addr[5]);
+
 	skb_copy_bits(skb, offset, &active, step);
         active = ntohl(active);
         offset += step;
@@ -263,7 +271,6 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
  					ovset);
 		goto out;		
 	}
-        /* Send <setup_fail, me, src, proxy, ovset> to me */
 
 out:
 	kfree(ovset);

@@ -28,6 +28,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 			clone->dev = dev;
 			dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac,
 					dev->dev_addr, clone->len);
+                        VRR_DBG("Sending over iface %s", tmp->dev_name);
 			dev_queue_xmit(clone);
 		}
 	}

@@ -155,20 +155,22 @@ int send_setup_req(u_int src, u_int dest, u_int proxy)
 	u_int *vset = NULL;
         u_int *setup_req_data;
 
-	WARN_ATOMIC;
+        VRR_DBG("src: %x, dest: %x, proxy: %x", src, dest, proxy);
 
 	pset_get_mac(proxy, proxy_mac);
+
+        VRR_DBG("proxy_mac: %x:%x:%x:%x:%x:%x",
+                proxy_mac[0], 
+                proxy_mac[1],
+                proxy_mac[2], 
+                proxy_mac[3], 
+                proxy_mac[4], 
+                proxy_mac[5]);
 
   	vset_size = vset_get_all(&vset);
         data_size = sizeof(u_int) * (vset_size + 2);
 
 	setup_req_data = kmalloc(data_size, GFP_ATOMIC);
-
-        /* VRR_DBG("setup request src id: %x", src); */
-        /* setup_req_data[p++] = htonl(src); */
-
-        /* VRR_DBG("setup request dst id: %x", dest); */
-        /* setup_req_data[p++] = htonl(dest); */
 
         VRR_DBG("proxy id: %x", proxy);
         setup_req_data[p++] = htonl(proxy);
