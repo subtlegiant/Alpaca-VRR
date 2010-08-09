@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sudo sh -c "echo 8 > /proc/sys/kernel/printk"
