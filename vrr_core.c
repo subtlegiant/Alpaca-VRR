@@ -312,7 +312,7 @@ int send_teardown(u32 path_id, u32 endpoint, u32 *vset,
 	
 	struct sk_buff *skb;
 	struct vrr_packet teardown_pkt;
-	int data_size = sizeof(u32) * (vset_size + 1);
+	int data_size = sizeof(u32) * (vset_size + 3);
 	u32 teardown_data[data_size];
  	unsigned char dest_mac[ETH_ALEN];
 	int i, p = 0;
@@ -321,6 +321,12 @@ int send_teardown(u32 path_id, u32 endpoint, u32 *vset,
 	VRR_DBG("Building teardown packet");
 	if(!pset_get_mac(to, dest_mac)) 
 		return -1;
+
+	VRR_DBG("ea: %x", endpoint);
+	teardown_data[p++] = htonl(endpoint);
+      
+	VRR_DBG("path id: %x", path_id);
+	teardown_data[p++] = htonl(path_id);
 
 	VRR_DBG("vset_size: %x",  vset_size);
 	teardown_data[p++] = htonl(vset_size);
