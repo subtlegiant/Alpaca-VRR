@@ -494,7 +494,7 @@ int send_hpkt()
                                      pstate->lna_size +
                                      pstate->p_size + 4);
 
-        hpkt_data = (u32 *) kmalloc(data_size, GFP_KERNEL);
+        hpkt_data = (u32 *) kmalloc(data_size, GFP_ATOMIC);
 
         VRR_DBG("vrr->active: %x", vrr->active);
 	hpkt_data[p++] = htonl(vrr->active);
@@ -523,7 +523,7 @@ int send_hpkt()
                 hpkt_data[p++] = htonl(pstate->pending[i]);
 	}
 
-	skb = vrr_skb_alloc(data_size, GFP_KERNEL);
+	skb = vrr_skb_alloc(data_size, GFP_ATOMIC);
 	if (skb)
                 memcpy(skb_put(skb, data_size), hpkt_data, data_size);
         else
