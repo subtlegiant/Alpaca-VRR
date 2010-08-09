@@ -118,7 +118,7 @@ struct sockaddr_vrr {
 };
 
 struct vrr_interface_list {
-	char *dev_name;
+	char dev_name[IFNAMSIZ];
         struct list_head list;
 };
 
