@@ -2,6 +2,8 @@
 #include <linux/kernel.h>
 #include <linux/skbuff.h>
 #include <linux/netdevice.h>
+#include <linux/list.h>
+#include <linux/workqueue.h>
 #include <net/sock.h>
 #include "vrr.h"
 #include "vrr_data.h"
@@ -23,6 +25,59 @@ static int hello_trans[4][3] = {
 	{PSET_LINKED,	PSET_LINKED,	PSET_PENDING},	/* pending */
 	{PSET_FAILED,	PSET_PENDING,	PSET_PENDING},	/* failed */
 	{PSET_FAILED,	PSET_LINKED,	PSET_PENDING}};	/* unknown */
+
+struct pset_update {
+	u32 node;
+	unsigned char mac[ETH_ALEN];
+	int trans;
+	int active;
+	struct list_head list;
+};
+
+static struct pset_update pset_updates;
+
+static DEFINE_SPINLOCK(pset_updates_lock);
+
+void __init vrr_init_rcv() 
+{
+	INIT_LIST_HEAD(&pset_updates.list);
+}
+
+void pset_update_handler(struct work_struct *work)
+{
+	struct list_head *pos, *q;
+	struct pset_update *tmp;
+	struct vrr_node *me = vrr_get_node();
+	int cur_state;
+	int next_state;
+	
+	list_for_each_safe(pos, q, &pset_updates.list) {
+		tmp = list_entry(pos, struct pset_update, list);
+		cur_state = pset_get_status(tmp->node);
+		next_state = hello_trans[cur_state][tmp->trans];
+
+		VRR_DBG("%s[%s] ==> %s", pset_states[cur_state],
+			pset_trans[tmp->trans], pset_states[next_state]);
+
+		if (cur_state == PSET_UNKNOWN) {
+			pset_add(tmp->node, tmp->mac, next_state, tmp->active);
+			pset_state_update();
+		} else if (cur_state != next_state) {
+			pset_update_status(tmp->node, next_state, tmp->active);
+			pset_state_update();
+		}
+
+		if (!me->active && tmp->active && next_state == PSET_LINKED)
+			send_setup_req(me->id, me->id, tmp->node);
+
+		list_del(pos);
+		kfree(tmp);
+	}
+
+	INIT_LIST_HEAD(&pset_updates.list);
+}
+
+static DECLARE_WORK(pset_updates_wq, pset_update_handler);
 
 static int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
 			       u32 vset_size, u32 *vset);
@@ -63,10 +118,9 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
 	size_t offset = sizeof(struct vrr_header);
         size_t step = sizeof(u32);
 	int trans = TRANS_MISSING;
-	int cur_state = pset_get_status(src);
-	int next_state;
         unsigned char src_addr[ETH_ALEN];
         struct vrr_node *me = vrr_get_node();
+	struct pset_update *update = NULL;
 
 	VRR_DBG("Packet type: VRR_HELLO");
 
@@ -137,38 +191,20 @@ static int vrr_rcv_hello(struct sk_buff *skb, const struct vrr_header *vh)
                 }
         }
 
-	/* When node x receives a hello message from node y, it
-	 * compares its state in the hello message with its local
-	 * state for y. Then, it updates y's local state according to
-	 * the state transition diagram shown in Figure 5. 
-         */
-
-	next_state = hello_trans[cur_state][trans];
-
-	VRR_DBG("cur_state: %s", pset_states[cur_state]);
-        VRR_DBG("transition: %s", pset_trans[trans]);
-	VRR_DBG("next_state: %s", pset_states[next_state]);
-
-	if (cur_state == PSET_UNKNOWN)
-		pset_add(src, src_addr, next_state, active);
-	else
-		pset_update_status(src, next_state, active);
-
-        /* Update pset state cache */
-        pset_state_update();
-
-        if (!me->active && active && next_state == PSET_LINKED) {
-                send_setup_req(me->id, me->id, src);
-        }
+	update = (struct pset_update *)
+		kmalloc(sizeof(struct pset_update), GFP_ATOMIC);
+	if (!update)
+		return -1;
 	
-	/* if src is in pset
-	   do nothing
-	   else if (me == active)
-	   Need to understand 3.3.1, 3.3.2 and 3.3.3 text
-	   else //proxy found
-	   send setup_req packet to proxy
-	*/
+	update->node = src;
+	memcpy(update->mac, src_addr, ETH_ALEN);
+	update->trans = trans;
+	update->active = active;
 	
+	list_add_tail(&update->list, &pset_updates.list);
+
+	schedule_work(&pset_updates_wq);
+
 	return 0;
 }
 
@@ -421,6 +457,7 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
 		goto drop;
 	}
 
+	reset_active_timeout();
         pset_reset_fail_count(ntohl(vh->src_id));
 
 	err = (*vrr_rcvfunc[vh->pkt_type])(skb, vh);

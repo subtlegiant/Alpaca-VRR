@@ -32,7 +32,7 @@ static ssize_t id_show(struct kobject *kobj, struct kobj_attribute *attr,
 			   char *buf)
 {
 	u_int value = get_vrr_id();
-	return sprintf(buf, "%x\n", value);
+	return sprintf(buf, "%08x\n", value);
 }
 
 static ssize_t pset_show_real(
@@ -77,7 +77,7 @@ static ssize_t pset_show_real(
 		// For snprint, n must include trailing null.
 		snprintf(buf + line_len * i,
 			line_len + 1,
-			"%x %02x:%02x:%02x:%02x:%02x:%02x\n",
+			"%08x %02x:%02x:%02x:%02x:%02x:%02x\n",
 			(u32)*(vrr_id),
 			(*mac)[0],
 			(*mac)[1],
@@ -157,7 +157,7 @@ static ssize_t vset_show (struct kobject *kobj,
 	for (i = 0; i < vset_size; ++i) {
 		snprintf(buf + line_len * i,
 			line_len + 1,
-			"%x\n",
+			"%08x\n",
                         (u32)*(vset));
 		++vset;
 	}
@@ -227,14 +227,12 @@ static int __init vrr_init(void)
 
 	WARN_ATOMIC;
 
-	//start hello packet timer
-	tdelay = jiffies + VRR_HPKT_DELAY;
-
 	VRR_INFO("Begin init");
 
 	vrr_node_init();
 	vrr_data_init();
 	pset_state_init();
+	vrr_init_rcv();
 
 	err = proto_register(&vrr_proto, 1);
 	if (err) {
@@ -263,7 +261,9 @@ static int __init vrr_init(void)
 
 	dev_add_pack(&vrr_packet_type);
 
-		mod_timer(&vrr_timer, tdelay);
+	//start hello packet timer
+	tdelay = jiffies + (VRR_HPKT_DELAY * HZ / 1000);
+	mod_timer(&vrr_timer, tdelay);
 
 	VRR_INFO("End init");
 
