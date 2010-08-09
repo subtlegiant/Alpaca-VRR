@@ -227,14 +227,12 @@ static int __init vrr_init(void)
 
 	WARN_ATOMIC;
 
-	//start hello packet timer
-	tdelay = jiffies + VRR_HPKT_DELAY;
-
 	VRR_INFO("Begin init");
 
 	vrr_node_init();
 	vrr_data_init();
 	pset_state_init();
+	vrr_init_rcv();
 
 	err = proto_register(&vrr_proto, 1);
 	if (err) {
@@ -263,7 +261,9 @@ static int __init vrr_init(void)
 
 	dev_add_pack(&vrr_packet_type);
 
-		mod_timer(&vrr_timer, tdelay);
+	//start hello packet timer
+	tdelay = jiffies + (VRR_HPKT_DELAY * HZ / 1000);
+	mod_timer(&vrr_timer, tdelay);
 
 	VRR_INFO("End init");
 

@@ -139,6 +139,10 @@ void active_timeout() {
                 vrr->active = 1;
 }
 
+void reset_active_timeout() {
+	vrr->timeout = 0;
+}
+
 /*build and send a setup request*/
 int send_setup_req(u_int src, u_int dest, u_int proxy)
 {

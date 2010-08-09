@@ -193,6 +193,7 @@ int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 unsigned int get_vrr_id(void);
 int vrr_node_init(void);
 struct vrr_node *vrr_get_node(void);
+void reset_active_timeout(void);
 
 // Vrr packet handling
 int send_hpkt(void);
@@ -204,6 +205,8 @@ int send_setup_fail(u32 src, u32 dest, u32 proxy, u32 vset_size,
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
 int vrr_add(u32 src, u_int vset_size, u_int *vset);
+
+void __init vrr_init_rcv(void);
 
 /* Various utilities */
 u32 vrr_new_path_id(void);

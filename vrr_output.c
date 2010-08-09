@@ -6,16 +6,14 @@
 #include "vrr.h"
 #include "vrr_data.h"
 
-int vrr_output(struct sk_buff *skb, struct vrr_node *vrr, 
-               int type)
+int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
+	       int type)
 {
 	struct net_device *dev;
 	struct vrr_header *vh;
-        struct sk_buff *clone;
+	struct sk_buff *clone;
 	struct list_head *pos;
 	struct vrr_interface_list *tmp;
-
-        WARN_ATOMIC;
 
 	vh = (struct vrr_header *)skb->data;
 
@@ -28,7 +26,7 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 		if (clone) {
 			skb_reset_network_header(clone);
 			clone->dev = dev;
-			dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac, 
+			dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac,
 					dev->dev_addr, clone->len);
 			dev_queue_xmit(clone);
 		}
@@ -45,15 +43,15 @@ int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh)
         struct ethhdr *dev_header;
 
         next_hop = rt_get_next(vh->dest_id);
-        if (next_hop == 0) 
+        if (next_hop == 0)
 		goto fail;
-        
+
    	if (!pset_get_mac(next_hop, next_hop_mac))
 		goto fail;
 
         dev_header = (struct ethhdr *)skb_network_header(skb);
         memcpy(dev_header->h_dest, next_hop_mac, MAC_ADDR_LEN);
-        
+
 	dev_queue_xmit(skb);
 
 	return NET_XMIT_SUCCESS;
@@ -62,10 +60,10 @@ fail:
 	VRR_DBG("Forward failed");
         kfree_skb(skb);
         return NET_XMIT_DROP;
-       
+
 }
 
-int vrr_forward_setup_req(struct sk_buff *skb, 
+int vrr_forward_setup_req(struct sk_buff *skb,
 			  const struct vrr_header *vh,
 			  u_int nh)
 {
@@ -73,7 +71,7 @@ int vrr_forward_setup_req(struct sk_buff *skb,
 	unsigned char dest_mac[ETH_ALEN];
 
 	dev_header = (struct ethhdr *)skb_network_header(skb);
-	
+
 	if (!pset_get_mac(nh, dest_mac)) {
 		VRR_ERR("Forwarding setup_req to unconnected node!");
 		return 0;
