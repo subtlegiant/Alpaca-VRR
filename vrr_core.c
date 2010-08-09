@@ -312,17 +312,18 @@ int send_teardown(u32 path_id, u32 endpoint, u32 *vset,
 	
 	struct sk_buff *skb;
 	struct vrr_packet teardown_pkt;
-	struct net_device *dev;
-	int data_size = sizeof(u32) * (vset + 1);
+	int data_size = sizeof(u32) * (vset_size + 1);
 	u32 teardown_data[data_size];
  	unsigned char dest_mac[ETH_ALEN];
 	int i, p = 0;
 
+
+	VRR_DBG("Building teardown packet");
 	if(!pset_get_mac(to, dest_mac)) 
 		return -1;
 
 	VRR_DBG("vset_size: %x",  vset_size);
-	teardown_pkt[p++] = htonl(vest_size);
+	teardown_data[p++] = htonl(vset_size);
 
 	for (i = 0; i < vset_size; i++) {
 		VRR_DBG("vset[%x]: %x", i, vset[i]);
@@ -337,11 +338,11 @@ int send_teardown(u32 path_id, u32 endpoint, u32 *vset,
                 return -1;
         }
 
-        teardown_pkt.src = src;
-        teardown_pkt.dst = dst;
+        teardown_pkt.src = get_vrr_id();
+        teardown_pkt.dst = to;
         teardown_pkt.data_len = data_size;
         teardown_pkt.pkt_type = VRR_TEARDOWN;
-        memcpy(l_pkt.dest_mac, dest_mac, ETH_ALEN);
+        memcpy(teardown_pkt.dest_mac, dest_mac, ETH_ALEN);
         
         build_header(skb, &teardown_pkt);
         vrr_output(skb, vrr_get_node(), VRR_TEARDOWN);
@@ -352,28 +353,26 @@ int send_teardown(u32 path_id, u32 endpoint, u32 *vset,
 int tear_down_path(u32 path_id, u32 endpoint, u32 sender)
 {
 	rt_entry *route;
-	u32 *vset, vset_size;
+	u32 *vset, vset_size = 0;
  
-	
 	route = rt_remove_route(endpoint, path_id);
 
 	if (route) {
-		vset = NULL;
 		if (route->na != NULL && pset_contains(route->na)) {
 			if (sender != NULL)
 				vset_size = vset_get_all(&vset);
 			send_teardown(path_id, endpoint, vset, vset_size, route->na);	
 		}
-	        vset = NULL;	
+	        vset = 0;	
 		if (route->nb != NULL && pset_contains(route->nb)) {
 			if (sender != NULL)
 				vset_size = vset_get_all(&vset);
 			send_teardown(path_id, endpoint, vset, vset_size, route->nb);
 		}
-		vset = NULL;
+		vset = 0;
 		if (sender != NULL && pset_contains(sender)) {
 			vset_size = vset_get_all(&vset);
-			send_teardown(path_id, endpoint, vset, sender);
+			send_teardown(path_id, endpoint, vset, vset_size, sender);
 		}
 	}
 

@@ -195,6 +195,8 @@ int vrr_forward_setup_req(struct sk_buff *skb,
  		           const struct vrr_header *vh,
 		           u_int next_hop);
 
+struct sock *vrr_find_sock(u32 addr);
+
 /*
  * Functions provided by vrr_core.c
  */
@@ -205,6 +207,7 @@ int set_vrr_id(u_int vrr_id); //id is a random unsigned integer
 unsigned int get_vrr_id(void);
 int vrr_node_init(void);
 struct vrr_node *vrr_get_node(void);
+void reset_active_timeout(void);
 
 // Vrr packet handling
 int send_hpkt(void);
@@ -213,12 +216,14 @@ int send_setup(u32 src, u32 dest, u32 path_id, u32 proxy, u32 vset_size,
                u32 *vset, u32 to);
 int send_setup_fail(u32 src, u32 dest, u32 proxy, u32 vset_size,
 		u32 *vset, u32 to);
-int send_teardown(u32 path_id, u32 endpoint, u32 *vset, u32 to);
+int send_teardown(u32 path_id, u32 endpoint, u32 *vset, 
+		u32 vset_size, u32 to);
 int tear_down_path(u32 path_id, u32 endpoint, u32 sender);
 int build_header(struct sk_buff *skb, struct vrr_packet *vpkt);
 int vrr_output(struct sk_buff *skb, struct vrr_node *node, int type);
 int vrr_add(u32 src, u_int vset_size, u_int *vset);
 
+void __init vrr_init_rcv(void);
 /* Various utilities */
 u32 vrr_new_path_id(void);
 
