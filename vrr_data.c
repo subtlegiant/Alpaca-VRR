@@ -349,7 +349,7 @@ int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
 
 	spin_lock_irqsave(&vrr_pset_lock, flags);
 
-	list_for_each(pos, &pset.list){	//check to see if node already exists
+	list_for_each(pos, &pset.list){
 		tmp= list_entry(pos, pset_list_t, list);
 		if (tmp->node == node) {
 			spin_unlock_irqrestore(&vrr_pset_lock, flags);
@@ -362,7 +362,7 @@ int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
 	tmp->node = node;
 	tmp->status = status;
 	tmp->active = active ? 1 : 0;
-	tmp->fail_count = ATOMIC_INIT(0);
+	atomic_set(&tmp->fail_count, 0);
 	memcpy(tmp->mac, mac, sizeof(mac_addr));
 
 	list_add(&(tmp->list), &(pset.list));
