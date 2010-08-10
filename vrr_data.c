@@ -362,6 +362,7 @@ int pset_add(u_int node, const unsigned char mac[MAC_ADDR_LEN], u_int status,
 	tmp->node = node;
 	tmp->status = status;
 	tmp->active = active ? 1 : 0;
+	tmp->fail_count = ATOMIC_INIT(0);
 	memcpy(tmp->mac, mac, sizeof(mac_addr));
 
 	list_add(&(tmp->list), &(pset.list));
