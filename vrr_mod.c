@@ -195,6 +195,7 @@ static void vrr_workqueue_handler(struct work_struct *work)
 {
         detect_failures();
         active_timeout();
+        send_hpkt();
 }
 
 static DECLARE_WORK(vrr_workqueue, vrr_workqueue_handler);
@@ -207,7 +208,6 @@ static void vrr_timer_tick(unsigned long arg)
 
 	tdelay = jiffies + (VRR_HPKT_DELAY * HZ / 1000);
 	schedule_work(&vrr_workqueue);
-        send_hpkt();
 	mod_timer(&vrr_timer, tdelay);
 }
 

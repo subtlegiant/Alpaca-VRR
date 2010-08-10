@@ -26,13 +26,22 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 		if (clone) {
 			skb_reset_network_header(clone);
 			clone->dev = dev;
+			VRR_DBG("dev->dev_addr: %x:%x:%x:%x:%x:%x",
+				dev->dev_addr[0], 
+				dev->dev_addr[1],
+				dev->dev_addr[2], 
+				dev->dev_addr[3], 
+				dev->dev_addr[4], 
+				dev->dev_addr[5]);
 			dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac,
 					dev->dev_addr, clone->len);
                         VRR_DBG("Sending over iface %s", tmp->dev_name);
 			dev_queue_xmit(clone);
+			dev_put(dev);
 		}
 	}
 
+	kfree_skb(skb);
 	return NET_XMIT_SUCCESS;
 }
 
@@ -61,7 +70,6 @@ fail:
 	VRR_DBG("Forward failed");
         kfree_skb(skb);
         return NET_XMIT_DROP;
-
 }
 
 int vrr_forward_setup_req(struct sk_buff *skb,

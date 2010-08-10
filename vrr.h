@@ -47,7 +47,7 @@
 #define VRR_SRC         0x10
 #define VRR_DST         0x18
 
-#define VRR_HPKT_DELAY  	5000	/* milliseconds */
+#define VRR_HPKT_DELAY  	10000	/* milliseconds */
 #define VRR_FAIL_TIMEOUT	4	/* multiple of delay to mark
                                          * failed nodes */
 #define VRR_ACTIVE_TIMEOUT	8	/* multiple of delay to activate
