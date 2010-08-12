@@ -64,6 +64,7 @@ int pset_remove(u_int node);
 u_int pset_get_status(u_int node);
 int pset_lookup_mac(mac_addr mac, u32 *node);
 int pset_get_mac(u_int node, mac_addr mac);
+int pset_get_status(u32 node);
 int pset_update_status(u_int node, u_int new_status, u_int active);
 int pset_inc_fail_count(struct pset_list *node);
 int pset_reset_fail_count(u_int node);
