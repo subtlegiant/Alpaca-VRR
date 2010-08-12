@@ -76,17 +76,18 @@ int vrr_forward_setup_req(struct sk_buff *skb,
 			  const struct vrr_header *vh,
 			  u_int nh)
 {
-	struct ethhdr *dev_header;
 	unsigned char dest_mac[ETH_ALEN];
-
-	dev_header = (struct ethhdr *)skb_network_header(skb);
+	struct vrr_header *myvh;
 
 	if (!pset_get_mac(nh, dest_mac)) {
 		VRR_ERR("Forwarding setup_req to unconnected node!");
 		return 0;
 	}
 
-        memcpy(dev_header->h_dest, dest_mac, MAC_ADDR_LEN);
-	dev_queue_xmit(skb);
-	return 1;
+	skb_pull(skb, sizeof(struct ethhdr));
+
+	myvh = (struct vrr_header *)skb_network_header(skb);
+
+        memcpy(myvh->dest_mac, dest_mac, ETH_ALEN);
+	return vrr_output(skb, vrr_get_node(), VRR_SETUP_REQ);
 }
