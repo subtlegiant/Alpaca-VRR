@@ -57,28 +57,23 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 /* Call the routing table to find next hop destination */
 int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh)
 {
-	u_int next_hop;
-        u8 next_hop_mac[ETH_ALEN];
-        struct ethhdr *dev_header;
+	u32 nh;
+        u8 nh_mac[ETH_ALEN];
+	struct vrr_header *myvh;
 
-        next_hop = rt_get_next(vh->dest_id);
-        if (next_hop == 0)
+        nh = rt_get_next(ntohl(vh->dest_id));
+        if (!nh)
 		goto fail;
 
-   	if (!pset_get_mac(next_hop, next_hop_mac))
+   	if (!pset_get_mac(nh, nh_mac))
 		goto fail;
 
-        dev_header = (struct ethhdr *)skb_network_header(skb);
-        memcpy(dev_header->h_dest, next_hop_mac, MAC_ADDR_LEN);
-
-	dev_queue_xmit(skb);
-
-	return NET_XMIT_SUCCESS;
+	myvh = (struct vrr_header *)skb_network_header(skb);
+        memcpy(myvh->dest_mac, nh_mac, MAC_ADDR_LEN);
+	return vrr_output(skb, vrr_get_node(), VRR_DATA);
 
 fail:
-	VRR_DBG("Forward failed");
-        kfree_skb(skb);
-        return NET_XMIT_DROP;
+	return NET_XMIT_DROP;
 }
 
 int vrr_forward_setup_req(struct sk_buff *skb,
@@ -94,23 +89,6 @@ int vrr_forward_setup_req(struct sk_buff *skb,
 	}
 
 	myvh = (struct vrr_header *)skb_network_header(skb);
-
-	VRR_DBG("vh->dest_mac: %x:%x:%x:%x:%x:%x",
-		vh->dest_mac[0], 
-		vh->dest_mac[1],
-		vh->dest_mac[2], 
-		vh->dest_mac[3], 
-		vh->dest_mac[4], 
-		vh->dest_mac[5]);
-
         memcpy(myvh->dest_mac, dest_mac, ETH_ALEN);
-	VRR_DBG("vh->dest_mac: %x:%x:%x:%x:%x:%x",
-		vh->dest_mac[0], 
-		vh->dest_mac[1],
-		vh->dest_mac[2], 
-		vh->dest_mac[3], 
-		vh->dest_mac[4], 
-		vh->dest_mac[5]);
-
 	return vrr_output(skb, vrr_get_node(), VRR_SETUP_REQ);
 }
