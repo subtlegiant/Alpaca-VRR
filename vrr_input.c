@@ -239,7 +239,6 @@ static int vrr_rcv_setup_req(struct sk_buff *skb, const struct vrr_header *vh)
 	skb_copy_bits(skb, offset, &proxy, step);
 	proxy = ntohl(proxy);
 	offset += step;
-	VRR_DBG("Proxy: %x", proxy);
 
 	skb_copy_bits(skb, offset, &vset_size, step);
 	vset_size = ntohl(vset_size);
@@ -356,32 +355,31 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
         src = ntohl(vh->src_id);
         dst = ntohl(vh->dest_id);
 
-        skb_copy_bits(skb, offset, &proxy, step);
-        proxy = ntohl(proxy);
-        offset += step;
-
         skb_copy_bits(skb, offset, &pid, step);
         pid = ntohl(pid);
         offset += step;
 
+        skb_copy_bits(skb, offset, &proxy, step);
+        proxy = ntohl(proxy);
+        offset += step;
+
+	VRR_DBG("src:%x dst:%x proxy:%x pid:%x", src, dst, proxy, pid);
+
         eth_header_parse(skb, src_addr);
 
-        if (!memcmp(skb->dev->dev_addr, src_addr, ETH_ALEN)) {
-                VRR_DBG("Received setup from myself");
-                sender = get_vrr_id();
-        } else {
-                in_pset = pset_lookup_mac(src_addr, &sender);
-                if (!in_pset) {
-                        /* TearDownPath(<pid, src>, null) */
-                        VRR_DBG("Sender is not in pset!");
-                        return 0;
-                }
-        }
+	in_pset = pset_lookup_mac(src_addr, &sender);
+	if (!in_pset) {
+		/* TearDownPath(<pid, src>, null) */
+		VRR_DBG("Sender is not in pset!");
+		return 0;
+	}
 
         if (pset_get_status(dst) == PSET_UNKNOWN)
-                nh = rt_get_next(proxy);
+		nh = (dst == me->id) ? 0 : rt_get_next(proxy);
         else
                 nh = dst;
+
+	VRR_DBG("nh: %x", nh);
 
         if (!rt_add_route(src, dst, sender, nh, pid)) {
                 /* TearDownPath(<pid, src>, null) */
@@ -416,7 +414,8 @@ static int vrr_rcv_setup(struct sk_buff *skb, const struct vrr_header *vh)
                 return 0;
         }
 
-        if (dst == get_vrr_id() && vrr_add(src, vset_size, vset)) {
+        if (vrr_add(src, vset_size, vset)) {
+		VRR_DBG("Yay! Received multi-hop setup message from %x!", src);
 		me->active = 1;
                 return 0;
 	} else {
@@ -549,8 +548,6 @@ int vrr_local_rcv_setup(u32 dst, u32 pid, u32 proxy,
 {
 	u32 src = get_vrr_id();
 	u32 nh;
-
-	VRR_DBG("Receiving setup message from myself.");
 
 	if (pset_get_status(dst) == PSET_UNKNOWN)
 		nh = rt_get_next(proxy);

@@ -662,10 +662,21 @@ int vset_should_add(u32 node)
 	int i = 0;
 	unsigned long flags;
 
-	if (vset_size < VRR_VSET_SIZE)
-		return 1;
-
 	spin_lock_irqsave(&vrr_vset_lock, flags);
+
+	list_for_each(pos, &vset.list) {
+		tmp = list_entry(pos, vset_list_t, list);
+		if (tmp->node == node) {
+			spin_unlock_irqrestore(&vrr_vset_lock, flags);
+			return 0;
+		}
+	}
+
+	if (vset_size < VRR_VSET_SIZE) {
+		spin_unlock_irqrestore(&vrr_vset_lock, flags);
+		return 1;
+	}
+
 	list_for_each(pos, &vset.list) {
 		tmp = list_entry(pos, vset_list_t, list);
 		left[i] = tmp->diff_left;

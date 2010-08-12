@@ -17,6 +17,15 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 
 	vh = (struct vrr_header *)skb->data;
 
+	VRR_INFO("vrr_version: %x", vh->vrr_version);
+	VRR_INFO("pkt_type: %x", vh->pkt_type);
+	VRR_INFO("protocol: %x", ntohs(vh->protocol));
+	VRR_INFO("data_len: %x", ntohs(vh->data_len));
+	VRR_INFO("free: %x", vh->free);
+	VRR_INFO("h_csum: %x", vh->h_csum);
+	VRR_INFO("src_id: %x", ntohl(vh->src_id));
+	VRR_INFO("dest_id: %x", ntohl(vh->dest_id));
+
 	list_for_each(pos, &vrr->dev_list.list) {
 		tmp = list_entry(pos, struct vrr_interface_list, list);
 		dev = dev_get_by_name(&init_net, tmp->dev_name);
@@ -26,13 +35,13 @@ int vrr_output(struct sk_buff *skb, struct vrr_node *vrr,
 		if (clone) {
 			skb_reset_network_header(clone);
 			clone->dev = dev;
-			VRR_DBG("dev->dev_addr: %x:%x:%x:%x:%x:%x",
-				dev->dev_addr[0], 
-				dev->dev_addr[1],
-				dev->dev_addr[2], 
-				dev->dev_addr[3], 
-				dev->dev_addr[4], 
-				dev->dev_addr[5]);
+			VRR_DBG("vh->dest_mac: %x:%x:%x:%x:%x:%x",
+				vh->dest_mac[0], 
+				vh->dest_mac[1],
+				vh->dest_mac[2], 
+				vh->dest_mac[3], 
+				vh->dest_mac[4], 
+				vh->dest_mac[5]);
 			dev_hard_header(clone, dev, ETH_P_VRR, vh->dest_mac,
 					dev->dev_addr, clone->len);
                         VRR_DBG("Sending over iface %s", tmp->dev_name);
@@ -84,10 +93,24 @@ int vrr_forward_setup_req(struct sk_buff *skb,
 		return 0;
 	}
 
-	skb_pull(skb, sizeof(struct ethhdr));
-
 	myvh = (struct vrr_header *)skb_network_header(skb);
 
+	VRR_DBG("vh->dest_mac: %x:%x:%x:%x:%x:%x",
+		vh->dest_mac[0], 
+		vh->dest_mac[1],
+		vh->dest_mac[2], 
+		vh->dest_mac[3], 
+		vh->dest_mac[4], 
+		vh->dest_mac[5]);
+
         memcpy(myvh->dest_mac, dest_mac, ETH_ALEN);
+	VRR_DBG("vh->dest_mac: %x:%x:%x:%x:%x:%x",
+		vh->dest_mac[0], 
+		vh->dest_mac[1],
+		vh->dest_mac[2], 
+		vh->dest_mac[3], 
+		vh->dest_mac[4], 
+		vh->dest_mac[5]);
+
 	return vrr_output(skb, vrr_get_node(), VRR_SETUP_REQ);
 }
