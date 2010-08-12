@@ -50,11 +50,13 @@ void pset_update_handler(struct work_struct *work)
 	struct vrr_node *me = vrr_get_node();
 	int cur_state;
 	int next_state;
+	int cur_active;
 	
 	list_for_each_safe(pos, q, &pset_updates.list) {
 		tmp = list_entry(pos, struct pset_update, list);
 		cur_state = pset_get_status(tmp->node);
 		next_state = hello_trans[cur_state][tmp->trans];
+		cur_active = pset_get_active(tmp->node);
 
 		VRR_DBG("%s[%s] ==> %s", pset_states[cur_state],
 			pset_trans[tmp->trans], pset_states[next_state]);
@@ -62,7 +64,8 @@ void pset_update_handler(struct work_struct *work)
 		if (cur_state == PSET_UNKNOWN) {
 			pset_add(tmp->node, tmp->mac, next_state, tmp->active);
 			pset_state_update();
-		} else if (cur_state != next_state) {
+		} else if (cur_state != next_state ||
+			   cur_active != tmp->active) {
 			pset_update_status(tmp->node, next_state, tmp->active);
 			pset_state_update();
 		}
