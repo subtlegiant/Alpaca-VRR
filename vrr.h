@@ -47,7 +47,7 @@
 #define VRR_SRC         0x10
 #define VRR_DST         0x18
 
-#define VRR_HPKT_DELAY  	5000	/* milliseconds */
+#define VRR_HPKT_DELAY  	10000	/* milliseconds */
 #define VRR_FAIL_TIMEOUT	4	/* multiple of delay to mark
                                          * failed nodes */
 #define VRR_ACTIVE_TIMEOUT	8	/* multiple of delay to activate
@@ -133,8 +133,6 @@ struct vrr_node {
 	struct vrr_interface_list dev_list;
 };
 
-
-
 struct vrr_packet {
 	u_int src; //the current node id
 	u_int dst; //the destination id
@@ -181,8 +179,8 @@ int vrr_rcv(struct sk_buff *skb, struct net_device *dev,
 // forward packet to id closest to dest in rt
 int vrr_forward(struct sk_buff *skb, const struct vrr_header *vh);
 int vrr_forward_setup_req(struct sk_buff *skb, 
- 		           const struct vrr_header *vh,
-		           u_int next_hop);
+			  const struct vrr_header *vh,
+			  u_int next_hop);
 
 struct sock *vrr_find_sock(u32 addr);
 
